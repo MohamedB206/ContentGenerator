@@ -383,7 +383,7 @@ export default function App() {
     }
   };
 
-  // استخراج الفيديو مدمجاً بدون أي تعليق عند الثانية 14-16 على الآيفون
+  // استخراج الفيديو مدمجاً مع مزامنة كاملة للصوت والصورة (Zero-Lag Audio Sync)
   const handleExtractFullVideo = async () => {
     const video = videoPlayerRef.current;
     const cardEl = templateCardRef.current;
@@ -396,6 +396,7 @@ export default function App() {
     setExportProgress(1);
 
     try {
+      // 1. رسم خلفية القالب الأساسية بدقة كاملة
       const cardCanvas = await renderCardToCanvasWithImages(cardEl);
       const cardImg = new Image();
       await new Promise((res) => {
@@ -408,6 +409,9 @@ export default function App() {
       canvas.height = cardImg.naturalHeight;
       const ctx = canvas.getContext('2d');
 
+      // رسم الإطار الأول على الـ Canvas قبل بدء التسجيل لمنع أي تأخير زمني
+      ctx.drawImage(cardImg, 0, 0, canvas.width, canvas.height);
+
       const videoRect = video.getBoundingClientRect();
       const cardRect = cardEl.getBoundingClientRect();
       const scaleX = canvas.width / cardRect.width;
@@ -418,10 +422,15 @@ export default function App() {
       const destW = videoRect.width * scaleX;
       const destH = videoRect.height * scaleY;
 
-      // استخدام معدل إطارات سلس ومتوافق تماماً مع الآيفون
-      const stream = canvas.captureStream(25);
+      // رسم أول إطار من الفيديو داخل الـ Canvas
+      ctx.save();
+      ctx.drawImage(video, destX, destY, destW, destH);
+      ctx.restore();
 
-      // ربط مسار الصوت مع معالجة حظر Safari التلقائي بعد 15 ثانية
+      // 2. إعداد تدفق الفيديو المتزامن
+      const stream = canvas.captureStream(30);
+
+      // 3. إعداد مسار الصوت بدقة مع استئناف فوري
       let audioCtx = null;
       try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -440,10 +449,9 @@ export default function App() {
           }
         }
       } catch (audioErr) {
-        console.warn('تنبيه مسار الصوت في الآيفون:', audioErr);
+        console.warn('تنبيه مسار الصوت:', audioErr);
       }
 
-      // تحديد نوع الفيديو المتوافق مع متصفحات الآيفون والكمبيوتر
       const mimeType = MediaRecorder.isTypeSupported('video/mp4;codecs=avc1')
         ? 'video/mp4;codecs=avc1'
         : MediaRecorder.isTypeSupported('video/mp4')
@@ -454,7 +462,7 @@ export default function App() {
 
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType,
-        videoBitsPerSecond: 3500000, // معدل متوازن ومستقر يمنع تعليق ذاكرة الآيفون
+        videoBitsPerSecond: 4000000,
       });
 
       const chunks = [];
@@ -479,22 +487,14 @@ export default function App() {
         }
       };
 
+      // 4. ضبط التوقيت الموحد لتفادي انزلاق الصوت عن الصورة
       video.currentTime = 0;
-      try {
-        video.muted = false;
-        await video.play();
-      } catch {
-        video.muted = true;
-        await video.play();
-      }
-
-      mediaRecorder.start(500); // تقسيم البيانات كل نصف ثانية لمنع تجمد الآيفون
+      video.muted = false;
 
       const totalDuration = video.duration || 10;
       let animationFrameId = null;
 
-      // حلقة رسم قوية تستمر حتى آخر ثانية بدون توقف
-      const renderFrame = () => {
+      const renderLoop = () => {
         if (video.paused || video.ended || video.currentTime >= totalDuration) {
           if (mediaRecorder.state === 'recording') {
             mediaRecorder.stop();
@@ -503,11 +503,12 @@ export default function App() {
           return;
         }
 
-        // الحفاظ على تدفق الصوت نشطاً في الآيفون
+        // الحفاظ على تدفق الصوت نشطاً
         if (audioCtx && audioCtx.state === 'suspended') {
           audioCtx.resume();
         }
 
+        // رسم خلفية القالب وفوقها إطار الفيديو الحي
         ctx.drawImage(cardImg, 0, 0, canvas.width, canvas.height);
         ctx.save();
         ctx.drawImage(video, destX, destY, destW, destH);
@@ -516,10 +517,23 @@ export default function App() {
         const percent = Math.min(99, Math.round((video.currentTime / totalDuration) * 100));
         setExportProgress(percent);
 
-        animationFrameId = requestAnimationFrame(renderFrame);
+        animationFrameId = requestAnimationFrame(renderLoop);
       };
 
-      animationFrameId = requestAnimationFrame(renderFrame);
+      // البدء التزامني في نفس اللحظة بمجرد صدور أول صوت وإطار
+      video.onplaying = () => {
+        if (mediaRecorder.state !== 'recording') {
+          mediaRecorder.start(250);
+        }
+        animationFrameId = requestAnimationFrame(renderLoop);
+      };
+
+      try {
+        await video.play();
+      } catch {
+        video.muted = true;
+        await video.play();
+      }
 
       video.onended = () => {
         if (mediaRecorder.state === 'recording') {
@@ -575,7 +589,7 @@ export default function App() {
             <h3 className="text-base font-black">
               {isVideoMnemonic ? 'جاري استخراج القالب والمقطع معاً...' : 'جاري دمج وتثبيت الصور بدقة...'}
             </h3>
-            <p className="text-xs text-slate-300">يتم معالجة المقطع والصوت حتى آخر ثانية بدقة كاملة</p>
+            <p className="text-xs text-slate-300">يتم مزامنة الصوت والصورة حتى آخر ثانية بدقة كاملة</p>
             {isVideoMnemonic && exportProgress > 0 && (
               <div className="w-full bg-slate-800 rounded-full h-3 overflow-hidden border border-slate-700">
                 <div
@@ -619,7 +633,7 @@ export default function App() {
                   صانع القوالب الذكي
                 </span>
               </div>
-              <p className="text-[10px] sm:text-xs text-slate-500 truncate">تصدير فيديو متواصل بدون تعليق</p>
+              <p className="text-[10px] sm:text-xs text-slate-500 truncate">تزامن فوري للصوت والصورة</p>
             </div>
           </div>
 
@@ -919,7 +933,7 @@ export default function App() {
 
             <hr className="border-slate-100" />
 
-            {/* 4. الربط الذهني (بمدخلين مستقلين) */}
+            {/* 4. الربط الذهني */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div>
