@@ -79,14 +79,14 @@ export default function App() {
   const [mnemonicMediaType, setMnemonicMediaType] = useState('video');
   const [mnemonicMediaUrl, setMnemonicMediaUrl] = useState(null);
 
-  // تبويب الجوال (إدخال أو معاينة)
+  // تبويب الجوال
   const [mobileTab, setMobileTab] = useState('edit');
 
   // حالة التصدير
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
 
-  // نظام تصغير المعاينة الذكي للجوال
+  // مراجع القالب
   const previewWrapperRef = useRef(null);
   const templateCardRef = useRef(null);
   const [canvasScale, setCanvasScale] = useState(1);
@@ -94,8 +94,11 @@ export default function App() {
 
   const logoRef = useRef(null);
   const qImgRef = useRef(null);
-  const mnemonicMediaRef = useRef(null);
   const videoPlayerRef = useRef(null);
+
+  // مراجع منفصلة ومستقلة لحل مشكلة الضغط مرتين نهائياً
+  const mnemonicImageInputRef = useRef(null);
+  const mnemonicVideoInputRef = useRef(null);
 
   const optARef = useRef(null);
   const optBRef = useRef(null);
@@ -103,13 +106,13 @@ export default function App() {
   const optDRef = useRef(null);
   const optImgRefs = { A: optARef, B: optBRef, C: optCRef, D: optDRef };
 
-  // حساب الحجم والتصغير بدقة
+  // حساب الأبعاد بدقة للجوال
   useEffect(() => {
     const handleResize = () => {
       if (!previewWrapperRef.current || !templateCardRef.current) return;
       const containerWidth = previewWrapperRef.current.offsetWidth;
       const baseWidth = 540;
-      if (containerWidth < baseWidth) {
+      if (containerWidth > 0 && containerWidth < baseWidth) {
         setCanvasScale(containerWidth / baseWidth);
       } else {
         setCanvasScale(1);
@@ -136,16 +139,6 @@ export default function App() {
       if (e.target?.result) callback(e.target.result);
     };
     reader.readAsDataURL(file);
-  };
-
-  const handleMnemonicMediaUpload = (file) => {
-    if (!file) return;
-    if (mnemonicMediaType === 'video') {
-      const url = URL.createObjectURL(file);
-      setMnemonicMediaUrl(url);
-    } else {
-      handleFileUpload(file, setMnemonicMediaUrl);
-    }
   };
 
   const updateOption = (id, patch) => {
@@ -305,52 +298,47 @@ export default function App() {
   const hasMnemonicMedia = enableMnemonic && mnemonicMediaType !== 'none' && mnemonicMediaUrl;
   const isVideoMnemonic = enableMnemonic && mnemonicMediaType === 'video' && mnemonicMediaUrl;
 
-  // دالة تأكيد تحميل وفك تشفير كل الصور قبل الاستخراج (تحل مشكلة الجوال 100%)
-  const waitForImagesToLoad = async (element) => {
-    const images = element.querySelectorAll('img');
-    const promises = Array.from(images).map(async (img) => {
-      if (img.complete) {
+  // دالة التقاط خاصة ومضمونة للآيفون وسفاري تعالج علل الـ WebKit
+  const safeIphoneCapture = async (element) => {
+    // 1. التأكد التام من تحميل وتجهيز كافة الصور داخل الـ DOM
+    const imgs = Array.from(element.querySelectorAll('img'));
+    await Promise.all(
+      imgs.map(async (img) => {
+        if (!img.complete) {
+          await new Promise((res) => {
+            img.onload = res;
+            img.onerror = res;
+          });
+        }
         if (img.decode) {
           try {
             await img.decode();
-          } catch (e) {
-            console.warn('Decode skip:', e);
-          }
+          } catch (_) {}
         }
-        return;
-      }
-      return new Promise((resolve) => {
-        img.onload = async () => {
-          if (img.decode) {
-            try {
-              await img.decode();
-            } catch (e) {
-              console.warn('Decode skip:', e);
-            }
-          }
-          resolve();
-        };
-        img.onerror = resolve;
-      });
+      })
+    );
+
+    // 2. عمل ضربة تمهيدية (Warm-up) ضرورية جداً لمحرك WebKit في الآيفون
+    try {
+      await toPng(element, { pixelRatio: 1, cacheBust: false });
+    } catch (_) {}
+
+    await new Promise((r) => setTimeout(r, 200));
+
+    // 3. الالتقاط الفعلي مع إعدادات متوافقة مع أجهزة أبل
+    return await toPng(element, {
+      pixelRatio: 2,
+      cacheBust: false,
+      backgroundColor: t.bg,
     });
-    await Promise.all(promises);
   };
 
-  // استخراج الصورة مع ضمان ظهور كل الصور المرفوعة على الجوال
+  // استخراج الصورة
   const handleExtractImage = async () => {
     if (!templateCardRef.current) return;
     setIsExporting(true);
     try {
-      // 1. انتظار فك تشفير كافة الصور (السؤال، الخيارات، الشعار، والربط)
-      await waitForImagesToLoad(templateCardRef.current);
-
-      // 2. إعدادات استخراج خالية من cacheBust لعدم إفساد روابط الـ Base64
-      const dataUrl = await toPng(templateCardRef.current, {
-        pixelRatio: 2,
-        skipFonts: false,
-        cacheBust: false,
-      });
-
+      const dataUrl = await safeIphoneCapture(templateCardRef.current);
       const link = document.createElement('a');
       link.download = `سؤال_عقدة_${subject || 'تحصيلي'}_${Date.now()}.png`;
       link.href = dataUrl;
@@ -363,7 +351,7 @@ export default function App() {
     }
   };
 
-  // استخراج الفيديو مدمجاً مع القالب والصور
+  // استخراج الفيديو مدمجاً
   const handleExtractFullVideo = async () => {
     const video = videoPlayerRef.current;
     const cardEl = templateCardRef.current;
@@ -376,14 +364,7 @@ export default function App() {
     setExportProgress(1);
 
     try {
-      await waitForImagesToLoad(cardEl);
-
-      const cardPngUrl = await toPng(cardEl, {
-        pixelRatio: 2,
-        skipFonts: false,
-        cacheBust: false,
-      });
-
+      const cardPngUrl = await safeIphoneCapture(cardEl);
       const cardImg = new Image();
       await new Promise((res) => {
         cardImg.onload = res;
@@ -499,15 +480,15 @@ export default function App() {
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#F4F6F9] text-slate-900 flex flex-col font-sans">
-      {/* نافذة التحميل أثناء التصدير */}
+      {/* نافذة التحميل */}
       {isExporting && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center text-white p-4">
           <div className="bg-slate-900 border border-slate-700 p-6 rounded-2xl max-w-sm w-full text-center space-y-4 shadow-2xl">
             <div className="w-12 h-12 border-4 border-[#D65261] border-t-transparent rounded-full animate-spin mx-auto"></div>
             <h3 className="text-base font-black">
-              {isVideoMnemonic ? 'جاري استخراج القالب والمقطع معاً...' : 'جاري استخراج الصورة...'}
+              {isVideoMnemonic ? 'جاري استخراج القالب والمقطع معاً...' : 'جاري معالجة وتثبيت الصور...'}
             </h3>
-            <p className="text-xs text-slate-300">يتم إعداد ملف موحد عالي الدقة يضم جميع الصور والمحتوى</p>
+            <p className="text-xs text-slate-300">يتم إعداد الملف بدقة فائقة متوافقة مع شاشات الآيفون والأندرويد</p>
             {isVideoMnemonic && exportProgress > 0 && (
               <div className="w-full bg-slate-800 rounded-full h-3 overflow-hidden border border-slate-700">
                 <div
@@ -551,7 +532,7 @@ export default function App() {
                   صانع القوالب الذكي
                 </span>
               </div>
-              <p className="text-[10px] sm:text-xs text-slate-500 truncate">أبعاد ونسب موحدة للجوال والكمبيوتر</p>
+              <p className="text-[10px] sm:text-xs text-slate-500 truncate">تثبيت دقيق للصور على أجهزة آبل والأندرويد</p>
             </div>
           </div>
 
@@ -851,7 +832,7 @@ export default function App() {
 
             <hr className="border-slate-100" />
 
-            {/* 4. الربط الذهني */}
+            {/* 4. الربط الذهني (حل مشكلة الضغط مرتين نهائياً بمداخل منفصلة) */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div>
@@ -899,11 +880,13 @@ export default function App() {
                       >
                         بدون
                       </button>
+
+                      {/* زر الصورة - يفتح ملفات الصور مباشرة من الضغطة الأولى */}
                       <button
                         type="button"
                         onClick={() => {
                           setMnemonicMediaType('image');
-                          mnemonicMediaRef.current?.click();
+                          mnemonicImageInputRef.current?.click();
                         }}
                         className={`py-2 rounded-xl text-xs font-bold border cursor-pointer truncate ${
                           mnemonicMediaType === 'image'
@@ -913,11 +896,13 @@ export default function App() {
                       >
                         🖼️ صورة
                       </button>
+
+                      {/* زر الفيديو - يفتح ملفات الفيديو مباشرة من الضغطة الأولى */}
                       <button
                         type="button"
                         onClick={() => {
                           setMnemonicMediaType('video');
-                          mnemonicMediaRef.current?.click();
+                          mnemonicVideoInputRef.current?.click();
                         }}
                         className={`py-2 rounded-xl text-xs font-bold border cursor-pointer truncate ${
                           mnemonicMediaType === 'video'
@@ -929,12 +914,28 @@ export default function App() {
                       </button>
                     </div>
 
+                    {/* مدخل الصور المستقل */}
                     <input
-                      ref={mnemonicMediaRef}
+                      ref={mnemonicImageInputRef}
                       type="file"
-                      accept={mnemonicMediaType === 'video' ? 'video/*' : 'image/*'}
+                      accept="image/*"
                       className="hidden"
-                      onChange={(e) => handleMnemonicMediaUpload(e.target.files?.[0])}
+                      onChange={(e) => handleFileUpload(e.target.files?.[0], setMnemonicMediaUrl)}
+                    />
+
+                    {/* مدخل الفيديو المستقل */}
+                    <input
+                      ref={mnemonicVideoInputRef}
+                      type="file"
+                      accept="video/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const url = URL.createObjectURL(file);
+                          setMnemonicMediaUrl(url);
+                        }
+                      }}
                     />
 
                     {mnemonicMediaUrl && (
@@ -972,7 +973,9 @@ export default function App() {
         {/* العمود الأيسر: المعاينة الحية */}
         <section
           className={`lg:col-span-7 space-y-4 ${
-            mobileTab === 'preview' ? 'block' : 'hidden lg:block'
+            mobileTab === 'preview'
+              ? 'block'
+              : 'fixed -left-[9999px] top-0 opacity-0 pointer-events-none lg:relative lg:left-0 lg:opacity-100 lg:pointer-events-auto lg:block'
           }`}
         >
           {/* اختيار الثيمات الـ 6 */}
@@ -1152,7 +1155,6 @@ export default function App() {
                           <img
                             src={questionImage}
                             alt="صورة السؤال"
-                            crossOrigin="anonymous"
                             style={{ maxHeight: '180px', maxWidth: '100%', borderRadius: '12px', objectFit: 'contain', border: `1px solid ${t.border}33` }}
                           />
                         </div>
@@ -1219,7 +1221,6 @@ export default function App() {
                                   <img
                                     src={opt.image}
                                     alt=""
-                                    crossOrigin="anonymous"
                                     style={{
                                       maxHeight: '60px',
                                       margin: '4px auto 0',
@@ -1277,7 +1278,7 @@ export default function App() {
                     )}
                   </div>
 
-                  {/* الميديا أسفل الصندوق: نسبة موحدة 100% */}
+                  {/* الميديا أسفل الصندوق */}
                   {hasMnemonicMedia && (
                     <div
                       style={{
@@ -1297,7 +1298,6 @@ export default function App() {
                           controls
                           playsInline
                           webkit-playsinline="true"
-                          crossOrigin="anonymous"
                           style={{
                             width: '420px',
                             maxWidth: '100%',
@@ -1313,7 +1313,6 @@ export default function App() {
                         <img
                           src={mnemonicMediaUrl}
                           alt="ربط"
-                          crossOrigin="anonymous"
                           style={{
                             width: '420px',
                             maxWidth: '100%',
