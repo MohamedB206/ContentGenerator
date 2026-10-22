@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { toPng } from 'html-to-image';
 
-// الشعار المطابق للصورة بـ SVG نظيف ومستقر بدون أي خلفية
+// الشعار المطابق للصورة بـ SVG نظيف ومستقر
 const UqdahLogo = ({ size = 80 }) => (
   <svg viewBox="0 0 180 175" width={size} height={size} style={{ overflow: 'visible' }}>
     <defs>
@@ -178,7 +178,7 @@ export default function App() {
     setMnemonicMediaType('none');
   };
 
-  // ثيمات القوالب
+  // القوالب السبعة
   const themes = {
     torn_paper: {
       id: 'torn_paper',
@@ -321,7 +321,7 @@ export default function App() {
   const hasMnemonicMedia = enableMnemonic && mnemonicMediaType !== 'none' && mnemonicMediaUrl;
   const isVideoMnemonic = enableMnemonic && mnemonicMediaType === 'video' && mnemonicMediaUrl;
 
-  // دالة التقاط الصور ورسمها على Canvas بدقة متناهية وبدون قص
+  // التقاط الصور ورسمها على Canvas بدقة متناهية
   const renderCardToCanvasWithImages = async (cardEl) => {
     const basePngUrl = await toPng(cardEl, {
       pixelRatio: 2,
@@ -403,7 +403,7 @@ export default function App() {
     }
   };
 
-  // استخراج الفيديو مدمجاً مع مزامنة الصوت والصورة
+  // استخراج الفيديو مدمجاً
   const handleExtractFullVideo = async () => {
     const video = videoPlayerRef.current;
     const cardEl = templateCardRef.current;
@@ -625,7 +625,7 @@ export default function App() {
               className="rounded-2xl p-1 bg-[#FFFDF9] border border-slate-200 hover:border-[#D65261] transition-all cursor-pointer flex items-center justify-center shrink-0"
             >
               {customLogo ? (
-                <img src={customLogo} alt="شعار عقدة" className="w-10 h-10 sm:w-12 sm:h-12 object-contain" />
+                <img src={customLogo} alt="شعار" className="w-10 h-10 sm:w-12 sm:h-12 object-contain" />
               ) : (
                 <UqdahLogo size={42} />
               )}
@@ -644,7 +644,7 @@ export default function App() {
                   صانع القوالب الذكي
                 </span>
               </div>
-              <p className="text-[10px] sm:text-xs text-slate-500 truncate">شعار شفاف مدمج بسلاسة في كل القوالب</p>
+              <p className="text-[10px] sm:text-xs text-slate-500 truncate">تثبيت نقي للشعار بدون أي تكرار</p>
             </div>
           </div>
 
@@ -1164,7 +1164,7 @@ export default function App() {
                         <polygon points="90,122 105,142 98,126" fill="#FF7A1A" />
                       </svg>
 
-                      {/* زاوية أعلى اليمين مع علامة الاستفهام 3D */}
+                      {/* زاوية أعلى اليمين: رقعة الورق الممزق + إخفاء علامة الاستفهام إذا كان هناك شعار مخصص مرفوع */}
                       <svg viewBox="0 0 160 170" style={{ position: 'absolute', top: 0, right: 0, width: '160px', height: '170px', pointerEvents: 'none', zIndex: 1 }}>
                         <polygon points="32,70 10,75 18,84" fill="#FF7A1A" />
                         <polygon points="40,88 15,100 28,108" fill="#FF7A1A" />
@@ -1173,11 +1173,14 @@ export default function App() {
                         <path d="M 45,0 L 160,0 L 160,135 Q 120,120 75,100 L 55,60 Z" fill="#FF7A1A" />
                         <path d="M 55,0 L 160,0 L 160,125 L 148,122 L 140,130 L 130,120 L 120,125 L 110,115 L 98,118 L 88,105 L 75,110 L 68,95 L 62,70 L 52,45 L 60,25 Z" fill="#7548DC" stroke="#FFFFFF" strokeWidth="1.5" />
 
-                        <g transform="translate(68, 8) rotate(10 35 60)">
-                          <text x="6" y="78" fontFamily="'Arial Black', Impact, sans-serif" fontSize="76" fontWeight="900" fill="#D95A00">?</text>
-                          <text x="4" y="76" fontFamily="'Arial Black', Impact, sans-serif" fontSize="76" fontWeight="900" fill="#FF7A1A">?</text>
-                          <text x="0" y="72" fontFamily="'Arial Black', Impact, sans-serif" fontSize="76" fontWeight="900" fill="#FFFFFF">?</text>
-                        </g>
+                        {/* مجسم علامة الاستفهام 3D يظهر فقط إذا لم يقم المستخدم برفع شعار مخصص لمنع التكرار */}
+                        {!customLogo && (
+                          <g transform="translate(68, 8) rotate(10 35 60)">
+                            <text x="6" y="78" fontFamily="'Arial Black', Impact, sans-serif" fontSize="76" fontWeight="900" fill="#D95A00">?</text>
+                            <text x="4" y="76" fontFamily="'Arial Black', Impact, sans-serif" fontSize="76" fontWeight="900" fill="#FF7A1A">?</text>
+                            <text x="0" y="72" fontFamily="'Arial Black', Impact, sans-serif" fontSize="76" fontWeight="900" fill="#FFFFFF">?</text>
+                          </g>
+                        )}
 
                         <path d="M 125,135 Q 115,155 130,162 Q 148,165 145,142" fill="none" stroke="#FF7A1A" strokeWidth="2.5" strokeLinecap="round" />
                         <polyline points="138,140 146,141 148,150" fill="none" stroke="#FF7A1A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -1280,11 +1283,11 @@ export default function App() {
                     </>
                   )}
 
-                  {/* الشعار - خلفية سادة وشفافة تماماً في كل القوالب */}
+                  {/* الشعار - يظهر بنقاء كامل بدون أي تكرار أو علامات خلفه */}
                   <div
                     style={{
                       position: 'relative',
-                      zIndex: 2,
+                      zIndex: 3,
                       display: 'flex',
                       marginTop: '4px',
                       backgroundColor: 'transparent',
@@ -1293,9 +1296,20 @@ export default function App() {
                     }}
                   >
                     {customLogo ? (
-                      <img src={customLogo} alt="أكاديمية عقدة" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
+                      <img
+                        src={customLogo}
+                        alt="شعار"
+                        style={{
+                          maxHeight: '85px',
+                          maxWidth: '120px',
+                          width: 'auto',
+                          height: 'auto',
+                          objectFit: 'contain',
+                          display: 'block',
+                        }}
+                      />
                     ) : (
-                      <UqdahLogo size={80} />
+                      t.waveType === 'torn_paper' ? null : <UqdahLogo size={80} />
                     )}
                   </div>
 
