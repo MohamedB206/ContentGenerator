@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { toPng } from 'html-to-image';
 
-// الشعار المطابق للصورة بـ SVG نظيف ومستقر
+// الشعار المطابق للصورة بـ SVG نظيف ومستقر بدون أي خلفية
 const UqdahLogo = ({ size = 80 }) => (
   <svg viewBox="0 0 180 175" width={size} height={size} style={{ overflow: 'visible' }}>
     <defs>
@@ -55,7 +55,7 @@ export default function App() {
   const [subject, setSubject] = useState('احياء');
   const [newSubjectInput, setNewSubjectInput] = useState('');
 
-  // القالب المختار الافتراضي
+  // القالب المختار
   const [selectedTemplate, setSelectedTemplate] = useState('torn_paper');
 
   // السؤال
@@ -178,7 +178,7 @@ export default function App() {
     setMnemonicMediaType('none');
   };
 
-  // القوالب السبعة مع إضافة قالب الورق الممزق والكولاج الجديد
+  // ثيمات القوالب
   const themes = {
     torn_paper: {
       id: 'torn_paper',
@@ -403,7 +403,7 @@ export default function App() {
     }
   };
 
-  // استخراج الفيديو مدمجاً مع مزامنة كاملة للصوت والصورة (Zero-Lag Audio Sync)
+  // استخراج الفيديو مدمجاً مع مزامنة الصوت والصورة
   const handleExtractFullVideo = async () => {
     const video = videoPlayerRef.current;
     const cardEl = templateCardRef.current;
@@ -644,7 +644,7 @@ export default function App() {
                   صانع القوالب الذكي
                 </span>
               </div>
-              <p className="text-[10px] sm:text-xs text-slate-500 truncate">قوالب التحدي والألغاز المتقدمة</p>
+              <p className="text-[10px] sm:text-xs text-slate-500 truncate">شعار شفاف مدمج بسلاسة في كل القوالب</p>
             </div>
           </div>
 
@@ -1086,10 +1086,10 @@ export default function App() {
               : 'fixed -left-[9999px] top-0 opacity-0 pointer-events-none lg:relative lg:left-0 lg:opacity-100 lg:pointer-events-auto lg:block'
           }`}
         >
-          {/* اختيار الثيمات مع تمييز قالب الورق الممزق */}
+          {/* اختيار الثيمات */}
           <div className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-4 shadow-sm space-y-2.5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-slate-800">اختر قالب الثيم (القالب الجديد 1):</span>
+              <span className="text-xs font-black text-slate-800">اختر قالب الثيم:</span>
               <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
                 {t.title.split('.')[1] || t.title}
               </span>
@@ -1155,48 +1155,36 @@ export default function App() {
                   {/* عناصر الجرافيك لقالب الورق الممزق والكولاج (Torn Paper Theme) */}
                   {t.waveType === 'torn_paper' ? (
                     <>
-                      {/* زاوية أعلى اليسار: الورق الممزق البنفسجي والبرتقالي مع أشعة الانفجار */}
+                      {/* زاوية أعلى اليسار */}
                       <svg viewBox="0 0 170 145" style={{ position: 'absolute', top: 0, left: 0, width: '170px', height: '145px', pointerEvents: 'none', zIndex: 1 }}>
-                        {/* طبقة برتقالية سفلية */}
                         <path d="M 0,0 L 140,0 Q 120,35 90,68 L 52,108 L 0,132 Z" fill="#FF7A1A" />
-                        {/* طبقة بنفسجية علوية مع حافة بيضاء ممزقة */}
                         <path d="M 0,0 L 130,0 L 126,10 L 120,14 L 122,24 L 115,30 L 117,38 L 108,46 L 110,54 L 98,62 L 95,72 L 80,80 L 78,90 L 62,98 L 58,108 L 40,116 L 35,124 L 18,128 L 0,122 Z" fill="#7548DC" stroke="#FFFFFF" strokeWidth="1.5" />
-                        {/* أشعة الانفجار البرتقالية الثلاثية */}
                         <polygon points="122,78 140,90 135,76" fill="#FF7A1A" />
                         <polygon points="106,98 124,115 118,100" fill="#FF7A1A" />
                         <polygon points="90,122 105,142 98,126" fill="#FF7A1A" />
                       </svg>
 
-                      {/* زاوية أعلى اليمين: رقعة الورق الممزق + علامة الاستفهام 3D + الأشعة + السهم */}
+                      {/* زاوية أعلى اليمين مع علامة الاستفهام 3D */}
                       <svg viewBox="0 0 160 170" style={{ position: 'absolute', top: 0, right: 0, width: '160px', height: '170px', pointerEvents: 'none', zIndex: 1 }}>
-                        {/* الأشعة البرتقالية يسار علامة الاستفهام */}
                         <polygon points="32,70 10,75 18,84" fill="#FF7A1A" />
                         <polygon points="40,88 15,100 28,108" fill="#FF7A1A" />
                         <polygon points="52,108 30,128 42,130" fill="#FF7A1A" />
 
-                        {/* رقعة الورق البرتقالية السفلية */}
                         <path d="M 45,0 L 160,0 L 160,135 Q 120,120 75,100 L 55,60 Z" fill="#FF7A1A" />
-
-                        {/* رقعة الورق البنفسجية الممزقة */}
                         <path d="M 55,0 L 160,0 L 160,125 L 148,122 L 140,130 L 130,120 L 120,125 L 110,115 L 98,118 L 88,105 L 75,110 L 68,95 L 62,70 L 52,45 L 60,25 Z" fill="#7548DC" stroke="#FFFFFF" strokeWidth="1.5" />
 
-                        {/* مجسم علامة الاستفهام الثلاثي الأبعاد */}
                         <g transform="translate(68, 8) rotate(10 35 60)">
-                          {/* البروز البرتقالي لعلامة الاستفهام 3D */}
                           <text x="6" y="78" fontFamily="'Arial Black', Impact, sans-serif" fontSize="76" fontWeight="900" fill="#D95A00">?</text>
                           <text x="4" y="76" fontFamily="'Arial Black', Impact, sans-serif" fontSize="76" fontWeight="900" fill="#FF7A1A">?</text>
-                          {/* الوجه الأبيض لعلامة الاستفهام */}
                           <text x="0" y="72" fontFamily="'Arial Black', Impact, sans-serif" fontSize="76" fontWeight="900" fill="#FFFFFF">?</text>
                         </g>
 
-                        {/* السهم البرتقالي اليدوي المنحني */}
                         <path d="M 125,135 Q 115,155 130,162 Q 148,165 145,142" fill="none" stroke="#FF7A1A" strokeWidth="2.5" strokeLinecap="round" />
                         <polyline points="138,140 146,141 148,150" fill="none" stroke="#FF7A1A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
 
-                      {/* زاوية أسفل اليسار: شخبطة لولبية + مصفوفة نقاط بنفسجية + ورق ممزق */}
+                      {/* زاوية أسفل اليسار */}
                       <svg viewBox="0 0 170 160" style={{ position: 'absolute', bottom: 0, left: 0, width: '170px', height: '160px', pointerEvents: 'none', zIndex: 1 }}>
-                        {/* مصفوفة النقاط البنفسجية */}
                         <g fill="#6C44D6" opacity="0.85">
                           <circle cx="20" cy="25" r="3.2" />
                           <circle cx="36" cy="25" r="3.2" />
@@ -1209,28 +1197,22 @@ export default function App() {
                           <circle cx="52" cy="55" r="3.2" />
                         </g>
 
-                        {/* الشخبطة البرتقالية الحرة (Scribble loop) */}
                         <path d="M 12,95 C 35,50 75,55 60,85 C 48,110 18,90 25,72 C 32,55 72,70 65,100" fill="none" stroke="#FF7A1A" strokeWidth="3.5" strokeLinecap="round" />
 
-                        {/* طبقة برتقالية سفلية */}
                         <path d="M 0,160 L 165,160 Q 130,125 90,118 L 45,125 L 0,85 Z" fill="#FF7A1A" />
-                        {/* طبقة بنفسجية ممزقة مع حافة بيضاء */}
                         <path d="M 0,160 L 155,160 L 150,150 L 140,145 L 132,152 L 120,142 L 110,148 L 98,135 L 85,142 L 72,130 L 60,135 L 45,120 L 30,126 L 15,105 L 0,110 Z" fill="#7548DC" stroke="#FFFFFF" strokeWidth="1.5" />
                       </svg>
 
-                      {/* زاوية أسفل اليمين: ورق ممزق + أشعة برتقالية */}
+                      {/* زاوية أسفل اليمين */}
                       <svg viewBox="0 0 170 140" style={{ position: 'absolute', bottom: 0, right: 0, width: '170px', height: '140px', pointerEvents: 'none', zIndex: 1 }}>
-                        {/* أشعة الانفجار البرتقالية */}
                         <polygon points="50,90 28,100 38,108" fill="#FF7A1A" />
                         <polygon points="68,70 48,82 58,90" fill="#FF7A1A" />
 
-                        {/* طبقة برتقالية */}
                         <path d="M 170,140 L 0,140 Q 35,105 80,95 L 125,105 L 170,65 Z" fill="#FF7A1A" />
-                        {/* طبقة بنفسجية ممزقة بحافة بيضاء */}
                         <path d="M 170,140 L 10,140 L 22,130 L 35,134 L 48,122 L 60,128 L 75,115 L 90,120 L 105,108 L 120,115 L 135,100 L 150,108 L 160,85 L 170,90 Z" fill="#7548DC" stroke="#FFFFFF" strokeWidth="1.5" />
                       </svg>
 
-                      {/* منتصف الحافة اليمنى: رقعة ورق ممزقة ونقاط بنفسجية */}
+                      {/* منتصف الحافة اليمنى */}
                       <svg viewBox="0 0 50 120" style={{ position: 'absolute', top: '45%', right: 0, width: '45px', height: '110px', pointerEvents: 'none', zIndex: 1 }}>
                         <g fill="#6C44D6" opacity="0.8">
                           <circle cx="12" cy="15" r="2.8" />
@@ -1298,18 +1280,16 @@ export default function App() {
                     </>
                   )}
 
-                  {/* الشعار */}
+                  {/* الشعار - خلفية سادة وشفافة تماماً في كل القوالب */}
                   <div
                     style={{
                       position: 'relative',
                       zIndex: 2,
                       display: 'flex',
                       marginTop: '4px',
-                      backgroundColor: t.isDark ? '#FFFDF9' : 'transparent',
-                      borderRadius: '16px',
-                      padding: t.isDark ? '4px 8px' : 0,
+                      backgroundColor: 'transparent',
+                      padding: 0,
                       width: 'fit-content',
-                      boxShadow: t.isDark ? '0 4px 12px rgba(0,0,0,0.15)' : 'none',
                     }}
                   >
                     {customLogo ? (
@@ -1504,7 +1484,7 @@ export default function App() {
                     )}
                   </div>
 
-                  {/* الميديا أسفل الصندوق: بوردر متكيف تلقائياً بدون قص */}
+                  {/* الميديا أسفل الصندوق */}
                   {hasMnemonicMedia && (
                     <div
                       style={{
