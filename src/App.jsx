@@ -99,7 +99,7 @@ export default function App() {
   const qImgRef = useRef(null);
   const videoPlayerRef = useRef(null);
 
-  // مداخل وسائط منفصلة لحل مشكلة الضغط مرتين
+  // مداخل وسائط منفصلة تماماً
   const mnemonicImageInputRef = useRef(null);
   const mnemonicVideoInputRef = useRef(null);
 
@@ -301,9 +301,8 @@ export default function App() {
   const hasMnemonicMedia = enableMnemonic && mnemonicMediaType !== 'none' && mnemonicMediaUrl;
   const isVideoMnemonic = enableMnemonic && mnemonicMediaType === 'video' && mnemonicMediaUrl;
 
-  // دالة متطورة ترسم كل الصور مباشرة فوق الـ Canvas لتجاوز حظر الـ WebKit في الآيفون 100%
+  // دالة التقاط الصور ورسمها على Canvas بدقة متناهية وبدون قص
   const renderCardToCanvasWithImages = async (cardEl) => {
-    // 1. التقاط إطار القالب بدقة
     const basePngUrl = await toPng(cardEl, {
       pixelRatio: 2,
       cacheBust: false,
@@ -323,7 +322,7 @@ export default function App() {
     // رسم القالب الأساسي
     ctx.drawImage(baseImg, 0, 0, canvas.width, canvas.height);
 
-    // 2. البحث عن كل الصور داخل القالب ورسمها يدوياً فوق الـ Canvas بمواقعها وأبعادها الدقيقة
+    // رسم كل الصور الداخلية بمواقعها ونسبتها الأصلية بدون قص
     const cardRect = cardEl.getBoundingClientRect();
     const scaleX = canvas.width / cardRect.width;
     const scaleY = canvas.height / cardRect.height;
@@ -346,9 +345,8 @@ export default function App() {
 
       if (loadedImg.naturalWidth > 0) {
         ctx.save();
-        // تطبيق نفس الـ borderRadius الخاص بالصورة
         ctx.beginPath();
-        ctx.roundRect(destX, destY, destW, destH, 8 * scaleX);
+        ctx.roundRect(destX, destY, destW, destH, 12 * scaleX);
         ctx.clip();
         ctx.drawImage(loadedImg, destX, destY, destW, destH);
         ctx.restore();
@@ -358,7 +356,7 @@ export default function App() {
     return canvas;
   };
 
-  // استخراج الصورة مع توافق تام للأجهزة
+  // استخراج الصورة
   const handleExtractImage = async () => {
     if (!templateCardRef.current) return;
     setIsExporting(true);
@@ -366,7 +364,6 @@ export default function App() {
       const finalCanvas = await renderCardToCanvasWithImages(templateCardRef.current);
       const dataUrl = finalCanvas.toDataURL('image/png');
 
-      // تجربة التنزيل المباشر
       const link = document.createElement('a');
       link.download = `سؤال_عقدة_${subject || 'تحصيلي'}_${Date.now()}.png`;
       link.href = dataUrl;
@@ -374,7 +371,6 @@ export default function App() {
       link.click();
       document.body.removeChild(link);
 
-      // في حال كان آيفون وسفاري منع التنزيل التلقائي، نظهر نافذة المعاينة للحفظ بضغطة واحدة
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
       if (isIOS) {
         setExtractedPreviewImage(dataUrl);
@@ -516,7 +512,7 @@ export default function App() {
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#F4F6F9] text-slate-900 flex flex-col font-sans">
-      {/* نافذة معاينة الصورة للآيفون لحفظها مباشرة في ألبوم الصور */}
+      {/* نافذة معاينة الصورة للآيفون لحفظها في الصور بضغطة مطولة */}
       {extractedPreviewImage && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-sm w-full p-5 space-y-4 shadow-2xl text-center">
@@ -555,7 +551,7 @@ export default function App() {
             <h3 className="text-base font-black">
               {isVideoMnemonic ? 'جاري استخراج القالب والمقطع معاً...' : 'جاري دمج وتثبيت الصور بدقة...'}
             </h3>
-            <p className="text-xs text-slate-300">يتم معالجة الصور يدوياً لتظهر بكامل وضوحها على الآيفون</p>
+            <p className="text-xs text-slate-300">يتم معالجة الصور يدوياً لتظهر بكامل وضوحها بدون أي قص</p>
             {isVideoMnemonic && exportProgress > 0 && (
               <div className="w-full bg-slate-800 rounded-full h-3 overflow-hidden border border-slate-700">
                 <div
@@ -599,7 +595,7 @@ export default function App() {
                   صانع القوالب الذكي
                 </span>
               </div>
-              <p className="text-[10px] sm:text-xs text-slate-500 truncate">تثبيت فوري للصور على الآيفون والأندرويد</p>
+              <p className="text-[10px] sm:text-xs text-slate-500 truncate">بوردر متكيف مع حجم الميديا بدون قص</p>
             </div>
           </div>
 
@@ -1102,7 +1098,7 @@ export default function App() {
                     position: 'relative',
                     overflow: 'hidden',
                     borderRadius: '24px',
-                    padding: hasMnemonicMedia ? '20px 28px 0px' : '20px 28px 28px',
+                    padding: hasMnemonicMedia ? '20px 28px 20px' : '20px 28px 28px',
                     boxSizing: 'border-box',
                     border: `1.5px solid ${t.border}22`,
                   }}
@@ -1218,7 +1214,15 @@ export default function App() {
                           <img
                             src={questionImage}
                             alt="صورة السؤال"
-                            style={{ maxHeight: '180px', maxWidth: '100%', borderRadius: '12px', objectFit: 'contain', border: `1px solid ${t.border}33` }}
+                            style={{
+                              maxHeight: '220px',
+                              maxWidth: '100%',
+                              width: 'auto',
+                              height: 'auto',
+                              borderRadius: '12px',
+                              border: `1px solid ${t.border}33`,
+                              display: 'block',
+                            }}
                           />
                         </div>
                       )}
@@ -1285,11 +1289,13 @@ export default function App() {
                                     src={opt.image}
                                     alt=""
                                     style={{
-                                      maxHeight: '60px',
+                                      maxHeight: '70px',
+                                      maxWidth: '100%',
+                                      width: 'auto',
+                                      height: 'auto',
                                       margin: '4px auto 0',
                                       display: 'block',
                                       borderRadius: '6px',
-                                      objectFit: 'contain',
                                     }}
                                   />
                                 )}
@@ -1341,52 +1347,61 @@ export default function App() {
                     )}
                   </div>
 
-                  {/* الميديا أسفل الصندوق */}
+                  {/* الميديا أسفل الصندوق: بوردر متكيف تلقائياً يلتف حول الصورة أو الفيديو بنسبتها الأصلية بدون أي قص */}
                   {hasMnemonicMedia && (
                     <div
                       style={{
                         position: 'relative',
                         zIndex: 2,
-                        marginTop: '12px',
+                        marginTop: '14px',
                         display: 'flex',
                         justifyContent: 'center',
-                        borderRadius: '0 0 20px 20px',
-                        overflow: 'hidden',
+                        alignItems: 'center',
+                        width: '100%',
                       }}
                     >
-                      {mnemonicMediaType === 'video' ? (
-                        <video
-                          ref={videoPlayerRef}
-                          src={mnemonicMediaUrl}
-                          controls
-                          playsInline
-                          webkit-playsinline="true"
-                          style={{
-                            width: '420px',
-                            maxWidth: '100%',
-                            aspectRatio: '1 / 0.92',
-                            objectFit: 'cover',
-                            display: 'block',
-                            backgroundColor: '#000',
-                            borderTopLeftRadius: '14px',
-                            borderTopRightRadius: '14px',
-                          }}
-                        />
-                      ) : (
-                        <img
-                          src={mnemonicMediaUrl}
-                          alt="ربط"
-                          style={{
-                            width: '420px',
-                            maxWidth: '100%',
-                            aspectRatio: '1 / 0.92',
-                            objectFit: 'cover',
-                            display: 'block',
-                            borderTopLeftRadius: '14px',
-                            borderTopRightRadius: '14px',
-                          }}
-                        />
-                      )}
+                      <div
+                        style={{
+                          borderRadius: '16px',
+                          overflow: 'hidden',
+                          border: `1.5px solid ${t.border}44`,
+                          boxShadow: '0 4px 14px rgba(0,0,0,0.06)',
+                          display: 'inline-flex',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          maxWidth: '100%',
+                          backgroundColor: mnemonicMediaType === 'video' ? '#000' : 'transparent',
+                        }}
+                      >
+                        {mnemonicMediaType === 'video' ? (
+                          <video
+                            ref={videoPlayerRef}
+                            src={mnemonicMediaUrl}
+                            controls
+                            playsInline
+                            webkit-playsinline="true"
+                            style={{
+                              maxWidth: '100%',
+                              maxHeight: '440px',
+                              width: 'auto',
+                              height: 'auto',
+                              display: 'block',
+                            }}
+                          />
+                        ) : (
+                          <img
+                            src={mnemonicMediaUrl}
+                            alt="ربط"
+                            style={{
+                              maxWidth: '100%',
+                              maxHeight: '440px',
+                              width: 'auto',
+                              height: 'auto',
+                              display: 'block',
+                            }}
+                          />
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
