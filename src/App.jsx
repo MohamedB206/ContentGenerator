@@ -58,7 +58,7 @@ export default function App() {
   // القالب المختار
   const [selectedTemplate, setSelectedTemplate] = useState('cream');
 
-  // السؤال: نص أو صورة
+  // السؤال
   const [questionText, setQuestionText] = useState('أي الهرمونات التالية يُنتج في الخصية؟');
   const [questionImage, setQuestionImage] = useState(null);
 
@@ -73,13 +73,13 @@ export default function App() {
   const [rightAnswer, setRightAnswer] = useState('C');
   const [highlightCorrectAnswer, setHighlightCorrectAnswer] = useState(true);
 
-  // الربط الذهني (يدعم فيديو أو صورة)
+  // الربط الذهني
   const [enableMnemonic, setEnableMnemonic] = useState(true);
   const [mnemonicText, setMnemonicText] = useState('هو هرمون ذكري ف أخوك لما يشوفكم يقول تسترو (تستيستيرون)');
   const [mnemonicMediaType, setMnemonicMediaType] = useState('video'); // 'none' | 'image' | 'video'
   const [mnemonicMediaUrl, setMnemonicMediaUrl] = useState(null);
 
-  // حالة استخراج وتصدير الميديا
+  // حالة التصدير
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
 
@@ -118,7 +118,6 @@ export default function App() {
     setOptions((prev) => prev.map((o) => (o.id === id ? { ...o, ...patch } : o)));
   };
 
-  // التحكم السريع بعدد الخيارات (4، 3، 2، 1، 0)
   const setQuickOptionCount = (count) => {
     setOptions((prev) =>
       prev.map((opt, idx) => ({ ...opt, enabled: idx < count }))
@@ -149,12 +148,12 @@ export default function App() {
     setMnemonicMediaType('none');
   };
 
-  // 6 قوالب بتصميمات وأشكال ومودات متنوعة تناسب التحصيلي والقدرات
+  // ثيمات التحصيلي الـ 6 المتنوعة
   const themes = {
     cream: {
       id: 'cream',
       title: '1. عقدة الأصلي (الكريمي)',
-      desc: 'مطابق للصورة تماماً',
+      desc: 'مطابق للتصميم الكلاسيكي',
       bg: '#F8F5EC',
       waveTop: '#DE6E79',
       waveSub: '#F3C75F',
@@ -172,7 +171,7 @@ export default function App() {
     blush: {
       id: 'blush',
       title: '2. عقدة الوردي الفاتح',
-      desc: 'نفس النسق بخلفية وردية ناعمة',
+      desc: 'نسق ناعم بخلفية وردية',
       bg: '#FDF3F4',
       waveTop: '#C94A58',
       waveSub: '#F2C94C',
@@ -190,7 +189,7 @@ export default function App() {
     sand: {
       id: 'sand',
       title: '3. عقدة الرملي الدافئ',
-      desc: 'نفس النسق بخلفية بيج كلاسيكية',
+      desc: 'بيج كلاسيكي دافئ',
       bg: '#F4EFE6',
       waveTop: '#B83B4A',
       waveSub: '#E6B84F',
@@ -208,7 +207,7 @@ export default function App() {
     navy: {
       id: 'navy',
       title: '4. التحصيلي الملكي (كحلي وسيان)',
-      desc: 'مود هندسي للفيزياء والرياضيات والتجميعات',
+      desc: 'مود هندسي للفيزياء والرياضيات',
       bg: '#F0F4F9',
       waveTop: '#0F2744',
       waveSub: '#0284C7',
@@ -226,7 +225,7 @@ export default function App() {
     emerald: {
       id: 'emerald',
       title: '5. المينت الأكاديمي (أخضر زمردي)',
-      desc: 'مود هادئ يركز على الأحياء والكيمياء',
+      desc: 'مود هادئ للأحياء والكيمياء',
       bg: '#F0FDF4',
       waveTop: '#064E3B',
       waveSub: '#10B981',
@@ -244,7 +243,7 @@ export default function App() {
     violet: {
       id: 'violet',
       title: '6. البنفسجي الإبداعي (ذهبي وموف)',
-      desc: 'ثيم فخم ذو طاقة عالية للقدرات والشامل',
+      desc: 'ثيم فخم للقدرات والشامل',
       bg: '#F6F3FF',
       waveTop: '#4C1D95',
       waveSub: '#F59E0B',
@@ -294,7 +293,7 @@ export default function App() {
     }
   };
 
-  // استخراج القالب المدمج بالفيديو في ملف MP4 / WebM واحد
+  // استخراج القالب المدمج مع الفيديو
   const handleExtractFullVideo = async () => {
     const video = videoPlayerRef.current;
     const cardEl = templateCardRef.current;
@@ -417,15 +416,15 @@ export default function App() {
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#F4F6F9] text-slate-900 flex flex-col font-sans">
-      {/* شاشة تحميل التصدير */}
+      {/* نافذة التحميل أثناء التصدير */}
       {isExporting && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center text-white p-6">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center text-white p-4">
           <div className="bg-slate-900 border border-slate-700 p-6 rounded-2xl max-w-sm w-full text-center space-y-4 shadow-2xl">
             <div className="w-12 h-12 border-4 border-[#D65261] border-t-transparent rounded-full animate-spin mx-auto"></div>
             <h3 className="text-base font-black">
               {isVideoMnemonic ? 'جاري استخراج القالب والمقطع معاً...' : 'جاري استخراج الصورة...'}
             </h3>
-            <p className="text-xs text-slate-300">يتم إعداد الملف بأعلى جودة جاهز للنشر مباشرة</p>
+            <p className="text-xs text-slate-300">يتم إعداد الملف بأعلى جودة جاهز للنشر</p>
             {isVideoMnemonic && exportProgress > 0 && (
               <div className="w-full bg-slate-800 rounded-full h-3 overflow-hidden border border-slate-700">
                 <div
@@ -439,20 +438,20 @@ export default function App() {
         </div>
       )}
 
-      {/* الشريط العلوي */}
-      <header className="sticky top-0 z-30 bg-white border-b border-slate-200 px-6 py-2.5 shadow-sm">
-        <div className="max-w-[1440px] mx-auto flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
+      {/* الشريط العلوي متجاوب بالكامل للجوال واللابتوب */}
+      <header className="sticky top-0 z-30 bg-white border-b border-slate-200 px-3 sm:px-6 py-2.5 shadow-sm">
+        <div className="max-w-[1440px] mx-auto flex items-center justify-between gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3.5 min-w-0">
             <button
               type="button"
               onClick={() => logoRef.current?.click()}
               title="اضغط لتغيير الشعار"
-              className="rounded-2xl p-1.5 bg-[#FFFDF9] border border-slate-200 hover:border-[#D65261] transition-all cursor-pointer flex items-center justify-center"
+              className="rounded-2xl p-1 bg-[#FFFDF9] border border-slate-200 hover:border-[#D65261] transition-all cursor-pointer flex items-center justify-center shrink-0"
             >
               {customLogo ? (
-                <img src={customLogo} alt="شعار عقدة" className="w-14 h-14 object-contain" />
+                <img src={customLogo} alt="شعار عقدة" className="w-10 h-10 sm:w-13 sm:h-13 object-contain" />
               ) : (
-                <UqdahLogo size={54} />
+                <UqdahLogo size={42} />
               )}
             </button>
             <input
@@ -462,52 +461,54 @@ export default function App() {
               className="hidden"
               onChange={(e) => handleFileUpload(e.target.files?.[0], setCustomLogo)}
             />
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-black text-slate-900">منصة أكاديمية عقدة</h1>
-                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-[#D65261]/10 text-[#A83846]">
-                  صانع قوالب التحصيلي والقدرات
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h1 className="text-sm sm:text-lg font-black text-slate-900 truncate">أكاديمية عقدة</h1>
+                <span className="text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#D65261]/10 text-[#A83846] hidden xs:inline-block">
+                  التحصيلي والقدرات
                 </span>
               </div>
-              <p className="text-xs text-slate-500">6 ثيمات وأشكال متنوعة • استخراج مدمج فوري</p>
+              <p className="text-[10px] sm:text-xs text-slate-500 truncate">أبعاد موحدة للجوال واللابتوب</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {customLogo && (
               <button
                 type="button"
                 onClick={() => setCustomLogo(null)}
-                className="text-xs font-bold text-rose-600 bg-rose-50 px-3 py-2 rounded-xl cursor-pointer"
+                className="text-[11px] font-bold text-rose-600 bg-rose-50 px-2.5 py-1.5 rounded-xl cursor-pointer hidden md:inline-block"
               >
-                استعادة الشعار الافتراضي
+                استعادة الشعار
               </button>
             )}
 
-            {/* زر الـ Extract الذكي */}
+            {/* زر الـ Extract الذكي في الهيدر */}
             {isVideoMnemonic ? (
               <button
                 type="button"
                 onClick={handleExtractFullVideo}
                 disabled={isExporting}
-                className="bg-[#D65261] hover:bg-[#B83746] text-white text-xs font-black px-5 py-2.5 rounded-xl cursor-pointer transition-all flex items-center gap-2 shadow-md hover:scale-[1.02]"
+                className="bg-[#D65261] hover:bg-[#B83746] text-white text-xs font-black px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl cursor-pointer transition-all flex items-center gap-1.5 shadow-md active:scale-95"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
-                <span>Extract: استخراج القالب مع الفيديو كامل 🎬</span>
+                <span className="hidden sm:inline">Extract: استخراج القالب مع الفيديو 🎬</span>
+                <span className="sm:hidden">استخراج فيديو 🎬</span>
               </button>
             ) : (
               <button
                 type="button"
                 onClick={handleExtractImage}
                 disabled={isExporting}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black px-5 py-2.5 rounded-xl cursor-pointer transition-all flex items-center gap-2 shadow-md hover:scale-[1.02]"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl cursor-pointer transition-all flex items-center gap-1.5 shadow-md active:scale-95"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
-                <span>Extract: استخراج القالب (PNG عالي الدقة) 🖼️</span>
+                <span className="hidden sm:inline">Extract: استخراج القالب (PNG) 🖼️</span>
+                <span className="sm:hidden">استخراج PNG 🖼️</span>
               </button>
             )}
           </div>
@@ -515,24 +516,24 @@ export default function App() {
       </header>
 
       {/* المحتوى الرئيسي */}
-      <main className="flex-1 max-w-[1440px] w-full mx-auto px-6 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <main className="flex-1 max-w-[1440px] w-full mx-auto p-3 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
         {/* العمود الأيمن: إدخال البيانات */}
         <section className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+          <div className="px-4 sm:px-5 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50">
             <div>
-              <h2 className="text-sm font-black text-slate-900">تعبئة بيانات السؤال</h2>
-              <p className="text-[11px] text-slate-500">يتكيف تلقائياً مع كافة الخيارات والربط</p>
+              <h2 className="text-sm font-black text-slate-900">بيانات السؤال</h2>
+              <p className="text-[11px] text-slate-500">معدّل تلقائياً ليناسب شاشة الهاتف</p>
             </div>
             <button
               type="button"
               onClick={resetQuestionFields}
-              className="text-xs font-bold text-slate-600 hover:text-rose-600 bg-white px-3 py-1.5 rounded-xl border border-slate-200 cursor-pointer"
+              className="text-xs font-bold text-slate-600 hover:text-rose-600 bg-white px-2.5 py-1 rounded-xl border border-slate-200 cursor-pointer"
             >
-              تفريغ لسؤال جديد
+              تفريغ
             </button>
           </div>
 
-          <div className="p-5 space-y-5">
+          <div className="p-4 sm:p-5 space-y-4 sm:space-y-5">
             {/* 1. اسم المادة */}
             <div className="space-y-2">
               <label className="flex items-center justify-between text-xs font-black text-slate-800">
@@ -548,7 +549,7 @@ export default function App() {
                     key={sub}
                     type="button"
                     onClick={() => setSubject(sub)}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
                       subject === sub
                         ? 'bg-[#D65261] text-white border-[#D65261]'
                         : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
@@ -565,7 +566,7 @@ export default function App() {
                   value={newSubjectInput}
                   onChange={(e) => setNewSubjectInput(e.target.value)}
                   placeholder="أو اكتب اسم مادة أخرى..."
-                  className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:bg-white"
+                  className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs sm:text-xs focus:outline-none focus:bg-white"
                 />
                 <button
                   type="submit"
@@ -580,15 +581,15 @@ export default function App() {
 
             {/* 2. السؤال (نص + صورة) */}
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-black text-slate-800">2. السؤال (نص أو صورة أو كلاهما)</label>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <label className="text-xs font-black text-slate-800">2. السؤال (نص أو صورة)</label>
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
                     onClick={() => qImgRef.current?.click()}
-                    className="text-xs font-bold px-3 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer"
+                    className="text-xs font-bold px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer"
                   >
-                    {questionImage ? 'تغيير صورة السؤال' : '+ إرفاق صورة للسؤال'}
+                    {questionImage ? 'تغيير الصورة' : '+ إرفاق صورة للسؤال'}
                   </button>
                   {questionImage && (
                     <button
@@ -596,7 +597,7 @@ export default function App() {
                       onClick={() => setQuestionImage(null)}
                       className="text-xs font-bold px-2 py-1 rounded-xl bg-rose-50 text-rose-600 cursor-pointer"
                     >
-                      حذف الصورة
+                      حذف
                     </button>
                   )}
                 </div>
@@ -613,26 +614,26 @@ export default function App() {
                 rows={2}
                 value={questionText}
                 onChange={(e) => setQuestionText(e.target.value)}
-                placeholder="اكتب نص السؤال هنا (أو اكتفِ برفع صورة السؤال أعلاه)..."
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-bold text-slate-900 focus:outline-none focus:bg-white resize-none"
+                placeholder="اكتب نص السؤال هنا..."
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 sm:p-3 text-sm font-bold text-slate-900 focus:outline-none focus:bg-white resize-none"
               />
 
               {questionImage && (
-                <div className="p-2 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-3">
-                  <img src={questionImage} alt="السؤال" className="h-12 w-12 object-contain bg-white rounded-lg border border-slate-200" />
-                  <span className="text-xs text-slate-600 font-bold">تم إرفاق صورة السؤال بنجاح وتظهر داخل الكرت</span>
+                <div className="p-2 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-2.5">
+                  <img src={questionImage} alt="السؤال" className="h-10 w-10 object-contain bg-white rounded-lg border border-slate-200" />
+                  <span className="text-xs text-slate-600 font-bold truncate">تم إرفاق صورة السؤال بنجاح</span>
                 </div>
               )}
             </div>
 
             <hr className="border-slate-100" />
 
-            {/* 3. الخيارات الديناميكية (من 4 إلى 1 خيار) */}
+            {/* 3. الخيارات */}
             <div className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <label className="text-xs font-black text-slate-800 block">3. الخيارات</label>
-                  <span className="text-[11px] text-slate-500">اختر عدد الخيارات من 4 وحتى خيار واحد</span>
+                  <span className="text-[11px] text-slate-500">اختر عدد الخيارات المتاحة:</span>
                 </div>
 
                 <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
@@ -647,7 +648,7 @@ export default function App() {
                       key={item.count}
                       type="button"
                       onClick={() => setQuickOptionCount(item.count)}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer transition-all ${
+                      className={`px-2 py-1 rounded-lg text-[11px] font-bold cursor-pointer transition-all ${
                         enabledCount === item.count
                           ? 'bg-[#D65261] text-white shadow-sm'
                           : 'text-slate-600 hover:text-slate-900'
@@ -662,7 +663,7 @@ export default function App() {
               {enabledCount > 0 && (
                 <>
                   <div className="flex items-center justify-between bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
-                    <span className="text-[11px] font-bold text-slate-600">اضغط على الحرف لتعيين الجواب الصحيح:</span>
+                    <span className="text-[11px] font-bold text-slate-600">اضغط لتعيين الجواب:</span>
                     <label className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 cursor-pointer">
                       <input
                         type="checkbox"
@@ -670,18 +671,18 @@ export default function App() {
                         onChange={(e) => setHighlightCorrectAnswer(e.target.checked)}
                         className="rounded accent-emerald-600 cursor-pointer"
                       />
-                      تلوين الجواب بالأخضر
+                      تلوين الجواب الصحيح
                     </label>
                   </div>
 
-                  <div className={`grid gap-2.5 ${enabledCount === 1 ? 'grid-cols-1 max-w-sm mx-auto' : 'grid-cols-1 sm:grid-cols-2'}`}>
+                  <div className={`grid gap-2 ${enabledCount === 1 ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'}`}>
                     {options.map((opt) => {
                       if (!opt.enabled) return null;
                       const isSelectedRight = rightAnswer === opt.id;
                       return (
                         <div
                           key={opt.id}
-                          className={`p-2.5 rounded-xl border transition-all ${
+                          className={`p-2 rounded-xl border transition-all ${
                             isSelectedRight ? 'bg-emerald-50 border-emerald-400' : 'bg-slate-50 border-slate-200'
                           }`}
                         >
@@ -701,7 +702,7 @@ export default function App() {
                               value={opt.text}
                               onChange={(e) => updateOption(opt.id, { text: e.target.value })}
                               placeholder={`نص الخيار (${opt.label})...`}
-                              className="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#D65261]"
+                              className="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-900 focus:outline-none"
                             />
 
                             <button
@@ -714,7 +715,7 @@ export default function App() {
                             <button
                               type="button"
                               onClick={() => updateOption(opt.id, { enabled: false })}
-                              title="إخفاء هذا الخيار"
+                              title="إخفاء"
                               className="px-1.5 py-1 rounded-lg bg-rose-50 text-rose-600 text-[10px] font-bold cursor-pointer"
                             >
                               ✕
@@ -733,12 +734,12 @@ export default function App() {
                           </div>
 
                           {opt.image && (
-                            <div className="mt-2 bg-white rounded-lg p-1.5 border border-slate-200 flex items-center justify-between">
-                              <img src={opt.image} alt="" className="h-10 object-contain rounded" />
+                            <div className="mt-1.5 bg-white rounded-lg p-1 border border-slate-200 flex items-center justify-between">
+                              <img src={opt.image} alt="" className="h-8 object-contain rounded" />
                               <button
                                 type="button"
                                 onClick={() => updateOption(opt.id, { image: null })}
-                                className="text-[11px] font-bold text-rose-600 px-2 cursor-pointer"
+                                className="text-[10px] font-bold text-rose-600 px-2 cursor-pointer"
                               >
                                 حذف الصورة
                               </button>
@@ -754,42 +755,40 @@ export default function App() {
 
             <hr className="border-slate-100" />
 
-            {/* 4. الربط الذهني (يدعم فيديو أو صورة) */}
+            {/* 4. الربط الذهني */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-xs font-black text-slate-800 block">4. الربط الذهني</span>
-                  <span className="text-[11px] text-slate-500">جملة الربط + صورة أو فيديو أسفل الصندوق</span>
+                  <span className="text-[11px] text-slate-500">جملة ربط ومقطع/صورة أسفل الكرت</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setEnableMnemonic(!enableMnemonic)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer ${
+                  className={`px-3 py-1 rounded-xl text-xs font-bold cursor-pointer ${
                     enableMnemonic ? 'bg-[#D65261] text-white' : 'bg-slate-100 text-slate-600'
                   }`}
                 >
-                  {enableMnemonic ? 'الربط مفعّل ✓' : '+ تفعيل الربط'}
+                  {enableMnemonic ? 'الربط مفعّل ✓' : '+ تفعيل'}
                 </button>
               </div>
 
               {enableMnemonic && (
-                <div className="p-3.5 rounded-xl bg-rose-50/50 border border-rose-200 space-y-3">
+                <div className="p-3 sm:p-3.5 rounded-xl bg-rose-50/50 border border-rose-200 space-y-3">
                   <div>
-                    <label className="text-[11px] font-bold text-slate-700 block mb-1">جملة الربط الذهني:</label>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">جملة الربط:</label>
                     <input
                       type="text"
                       value={mnemonicText}
                       onChange={(e) => setMnemonicText(e.target.value)}
-                      placeholder="اكتب جملة الربط هنا..."
-                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#D65261]"
+                      placeholder="اكتب جملة الربط..."
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold focus:outline-none"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[11px] font-bold text-slate-700 block">
-                      نوع الميديا أسفل الكرت (فيديو أو صورة):
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
+                    <label className="text-[11px] font-bold text-slate-700 block">نوع الميديا أسفل الكرت:</label>
+                    <div className="grid grid-cols-3 gap-1.5">
                       <button
                         type="button"
                         onClick={() => {
@@ -802,7 +801,7 @@ export default function App() {
                             : 'bg-white text-slate-600 border-slate-200'
                         }`}
                       >
-                        بدون ميديا
+                        بدون
                       </button>
                       <button
                         type="button"
@@ -810,13 +809,13 @@ export default function App() {
                           setMnemonicMediaType('image');
                           mnemonicMediaRef.current?.click();
                         }}
-                        className={`py-2 rounded-xl text-xs font-bold border cursor-pointer ${
+                        className={`py-2 rounded-xl text-xs font-bold border cursor-pointer truncate ${
                           mnemonicMediaType === 'image'
                             ? 'bg-[#D65261] text-white border-[#D65261]'
                             : 'bg-white text-slate-700 border-slate-200'
                         }`}
                       >
-                        🖼️ صورة للربط
+                        🖼️ صورة
                       </button>
                       <button
                         type="button"
@@ -824,13 +823,13 @@ export default function App() {
                           setMnemonicMediaType('video');
                           mnemonicMediaRef.current?.click();
                         }}
-                        className={`py-2 rounded-xl text-xs font-bold border cursor-pointer ${
+                        className={`py-2 rounded-xl text-xs font-bold border cursor-pointer truncate ${
                           mnemonicMediaType === 'video'
                             ? 'bg-[#D65261] text-white border-[#D65261]'
                             : 'bg-white text-slate-700 border-slate-200'
                         }`}
                       >
-                        🎬 مقطع فيديو
+                        🎬 فيديو
                       </button>
                     </div>
 
@@ -844,15 +843,15 @@ export default function App() {
 
                     {mnemonicMediaUrl && (
                       <div className="flex items-center justify-between bg-white p-2 rounded-xl border border-rose-200">
-                        <span className="text-xs font-bold text-slate-700">
-                          {mnemonicMediaType === 'video' ? '🎬 تم إرفاق مقطع الفيديو بنجاح' : '🖼️ تم إرفاق صورة الربط بنجاح'}
+                        <span className="text-xs font-bold text-slate-700 truncate">
+                          {mnemonicMediaType === 'video' ? '🎬 تم اختيار الفيديو' : '🖼️ تم اختيار الصورة'}
                         </span>
                         <button
                           type="button"
                           onClick={() => setMnemonicMediaUrl(null)}
-                          className="text-xs font-bold text-rose-600 px-2 py-1 bg-rose-50 rounded-lg cursor-pointer"
+                          className="text-xs font-bold text-rose-600 px-2 py-0.5 bg-rose-50 rounded-lg cursor-pointer shrink-0"
                         >
-                          حذف الميديا
+                          حذف
                         </button>
                       </div>
                     )}
@@ -863,43 +862,45 @@ export default function App() {
           </div>
         </section>
 
-        {/* العمود الأيسر: اختيار القوالب الـ 6 والمعاينة الحية */}
+        {/* العمود الأيسر: المعاينة الحية واستخراج القالب */}
         <section className="lg:col-span-7 space-y-4">
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm space-y-3">
+          {/* اختيار القوالب */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-4 shadow-sm space-y-2.5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-slate-800">اختر قالب الخلفية والثيم (6 قوالب لمود التحصيلي والقدرات):</span>
+              <span className="text-xs font-black text-slate-800">اختر ثيم القالب:</span>
               <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
                 {t.title.split('.')[1] || t.title}
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {Object.values(themes).map((tpl) => (
                 <button
                   key={tpl.id}
                   type="button"
                   onClick={() => setSelectedTemplate(tpl.id)}
-                  className={`p-3 rounded-xl border text-right transition-all cursor-pointer ${
+                  className={`p-2.5 rounded-xl border text-right transition-all cursor-pointer ${
                     selectedTemplate === tpl.id
                       ? 'bg-[#FFF5F6] border-[#D65261] shadow-sm ring-2 ring-[#D65261]/20'
                       : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-slate-900">{tpl.title}</span>
+                    <span className="text-[11px] sm:text-xs font-black text-slate-900 truncate">{tpl.title}</span>
                     <span
-                      className="w-3.5 h-3.5 rounded-full border border-black/10 shrink-0"
+                      className="w-3 h-3 rounded-full border border-black/10 shrink-0 mr-1"
                       style={{ backgroundColor: tpl.waveTop }}
                     />
                   </div>
-                  <div className="text-[11px] text-slate-500 mt-1">{tpl.desc}</div>
+                  <div className="text-[10px] text-slate-500 mt-0.5 line-clamp-1">{tpl.desc}</div>
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-            <div className="w-full max-w-[620px] mx-auto">
+          {/* حاوية المعاينة مع تناسق كامل للجوال واللابتوب */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-2 sm:p-5 shadow-sm">
+            <div className="w-full max-w-[580px] mx-auto">
               <div
                 ref={templateCardRef}
                 style={{
@@ -909,12 +910,15 @@ export default function App() {
                   position: 'relative',
                   overflow: 'hidden',
                   borderRadius: '24px',
-                  padding: `22px 30px ${hasMnemonicMedia ? '0px' : '32px'}`,
+                  // بادينج متجاوب بدقة ليعطي نفس الشكل تماماً
+                  padding: hasMnemonicMedia
+                    ? 'clamp(14px, 3.5vw, 22px) clamp(16px, 4.5vw, 30px) 0px'
+                    : 'clamp(14px, 3.5vw, 22px) clamp(16px, 4.5vw, 30px) clamp(20px, 4vw, 32px)',
                   boxSizing: 'border-box',
                   border: `1.5px solid ${t.border}22`,
                 }}
               >
-                {/* النقوش العلمية في الخلفية بتناسق مع كل ثيم */}
+                {/* النقوش العلمية في الخلفية */}
                 <svg
                   viewBox="0 0 800 750"
                   style={{
@@ -943,28 +947,24 @@ export default function App() {
                   </g>
                 </svg>
 
-                {/* الموجة العلوية المتنوعة حسب كل قالب */}
+                {/* الموجة العلوية حسب كل ثيم */}
                 {t.waveType === 'modern' ? (
-                  // شكل هندسي تقني للتحصيلي الملكي (كحلي وسيان)
-                  <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '110px', pointerEvents: 'none' }} preserveAspectRatio="none">
+                  <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '105px', pointerEvents: 'none' }} preserveAspectRatio="none">
                     <path d="M 0,0 L 800,0 L 800,60 L 500,105 L 200,45 L 0,85 Z" fill={t.waveSub} opacity="0.65" />
                     <path d="M 0,0 L 800,0 L 800,45 L 480,90 L 180,30 L 0,65 Z" fill={t.waveTop} />
                   </svg>
                 ) : t.waveType === 'leaf' ? (
-                  // انحناءات حيوية انسيابية للمينت الأكاديمي (أحياء وكيمياء)
-                  <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '110px', pointerEvents: 'none' }} preserveAspectRatio="none">
+                  <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '105px', pointerEvents: 'none' }} preserveAspectRatio="none">
                     <path d="M 0,0 L 800,0 L 800,75 Q 600,125 400,60 Q 200,5 0,80 Z" fill={t.waveSub} opacity="0.65" />
                     <path d="M 0,0 L 800,0 L 800,55 Q 580,105 380,45 Q 180,0 0,60 Z" fill={t.waveTop} />
                   </svg>
                 ) : t.waveType === 'arch' ? (
-                  // أقواس فخمة ومزدوجة للبنفسجي الإبداعي
-                  <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '110px', pointerEvents: 'none' }} preserveAspectRatio="none">
+                  <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '105px', pointerEvents: 'none' }} preserveAspectRatio="none">
                     <path d="M 0,0 L 800,0 L 800,85 Q 550,-10 320,85 Q 150,130 0,60 Z" fill={t.waveSub} opacity="0.75" />
                     <path d="M 0,0 L 800,0 L 800,65 Q 530,-25 300,70 Q 140,110 0,45 Z" fill={t.waveTop} />
                   </svg>
                 ) : (
-                  // الموجة الكلاسيكية الأصلية لعقدة
-                  <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '110px', pointerEvents: 'none' }} preserveAspectRatio="none">
+                  <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '105px', pointerEvents: 'none' }} preserveAspectRatio="none">
                     <path d="M 0,32 Q 210,-15 470,22 Q 650,120 800,88 L 800,0 L 0,0 Z" fill={t.waveSub} opacity="0.65" />
                     <path d="M 0,24 Q 230,-18 480,15 Q 660,110 800,82 L 800,58 Q 660,85 490,0 L 0,0 Z" fill={t.waveTop} />
                   </svg>
@@ -973,18 +973,18 @@ export default function App() {
                 {/* الشعار */}
                 <div style={{ position: 'relative', zIndex: 2, display: 'flex', marginTop: '4px' }}>
                   {customLogo ? (
-                    <img src={customLogo} alt="أكاديمية عقدة" style={{ width: '85px', height: '85px', objectFit: 'contain' }} />
+                    <img src={customLogo} alt="أكاديمية عقدة" style={{ width: 'clamp(65px, 15vw, 85px)', height: 'clamp(65px, 15vw, 85px)', objectFit: 'contain' }} />
                   ) : (
-                    <UqdahLogo size={85} />
+                    <UqdahLogo size={75} />
                   )}
                 </div>
 
-                {/* دائرة اسم المادة الملونة حسب القالب */}
-                <div style={{ position: 'relative', zIndex: 3, display: 'flex', justifyContent: 'center', marginTop: '-30px', marginBottom: '-40px' }}>
+                {/* دائرة اسم المادة */}
+                <div style={{ position: 'relative', zIndex: 3, display: 'flex', justifyContent: 'center', marginTop: '-30px', marginBottom: '-38px' }}>
                   <div
                     style={{
-                      width: '90px',
-                      height: '90px',
+                      width: 'clamp(72px, 18vw, 88px)',
+                      height: 'clamp(72px, 18vw, 88px)',
                       borderRadius: '50%',
                       backgroundColor: t.subjectBg,
                       color: t.subjectColor,
@@ -992,7 +992,7 @@ export default function App() {
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontWeight: 800,
-                      fontSize: '30px',
+                      fontSize: 'clamp(22px, 5.5vw, 29px)',
                       textShadow: '0 1px 2px rgba(0,0,0,0.15)',
                       boxShadow: '0 4px 10px rgba(0,0,0,0.08)',
                     }}
@@ -1008,8 +1008,8 @@ export default function App() {
                     zIndex: 2,
                     backgroundColor: t.cardBg,
                     border: `1.8px solid ${t.border}`,
-                    borderRadius: '26px',
-                    padding: '42px 24px 18px',
+                    borderRadius: '24px',
+                    padding: 'clamp(36px, 8vw, 42px) clamp(14px, 4vw, 24px) clamp(14px, 3vw, 18px)',
                     boxSizing: 'border-box',
                   }}
                 >
@@ -1018,7 +1018,7 @@ export default function App() {
                     style={{
                       textAlign: 'center',
                       fontWeight: 800,
-                      fontSize: '23px',
+                      fontSize: 'clamp(18px, 4.2vw, 23px)',
                       color: t.textMain,
                       lineHeight: 1.4,
                     }}
@@ -1029,20 +1029,20 @@ export default function App() {
                         <img
                           src={questionImage}
                           alt="صورة السؤال"
-                          style={{ maxHeight: '185px', borderRadius: '12px', objectFit: 'contain', border: `1px solid ${t.border}33` }}
+                          style={{ maxHeight: '180px', maxWidth: '100%', borderRadius: '12px', objectFit: 'contain', border: `1px solid ${t.border}33` }}
                         />
                       </div>
                     )}
                   </div>
 
-                  {/* الخيارات الديناميكية (تدعم خيار واحد بشكل متناسق في المنتصف) */}
+                  {/* الخيارات */}
                   {activeOptions.length > 0 && (
                     <div
                       style={{
                         display: 'grid',
                         gridTemplateColumns: activeOptions.length === 1 ? '1fr' : 'repeat(2, 1fr)',
-                        gap: '12px 16px',
-                        marginTop: '15px',
+                        gap: 'clamp(8px, 2vw, 12px) clamp(10px, 3vw, 16px)',
+                        marginTop: '14px',
                         maxWidth: activeOptions.length === 1 ? '380px' : '100%',
                         marginRight: 'auto',
                         marginLeft: 'auto',
@@ -1059,15 +1059,15 @@ export default function App() {
                               border: `1.8px solid ${isCorrect ? '#8CE0B0' : t.border}`,
                               backgroundColor: isCorrect ? '#B6F2CF' : '#FFFFFF',
                               borderRadius: '10px',
-                              padding: '6px 10px',
-                              gap: '8px',
-                              minHeight: '44px',
+                              padding: '5px 8px',
+                              gap: '6px',
+                              minHeight: '42px',
                             }}
                           >
                             <span
                               style={{
-                                width: '26px',
-                                height: '26px',
+                                width: '25px',
+                                height: '25px',
                                 borderRadius: '50%',
                                 backgroundColor: isCorrect ? '#10B981' : t.optionBadge,
                                 color: '#ffffff',
@@ -1075,7 +1075,7 @@ export default function App() {
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 fontWeight: 800,
-                                fontSize: '14px',
+                                fontSize: '13px',
                                 flexShrink: 0,
                               }}
                             >
@@ -1086,7 +1086,7 @@ export default function App() {
                                 flex: 1,
                                 textAlign: 'center',
                                 fontWeight: 800,
-                                fontSize: '18px',
+                                fontSize: 'clamp(14px, 3.4vw, 17px)',
                                 color: t.textMain,
                               }}
                             >
@@ -1096,7 +1096,7 @@ export default function App() {
                                   src={opt.image}
                                   alt=""
                                   style={{
-                                    maxHeight: '65px',
+                                    maxHeight: '60px',
                                     margin: '4px auto 0',
                                     display: 'block',
                                     borderRadius: '6px',
@@ -1111,14 +1111,14 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* شريط جملة الربط الذهني المتناسق مع كل ثيم */}
+                  {/* جملة الربط الذهني */}
                   {hasMnemonicText && (
                     <div
                       style={{
-                        marginTop: '14px',
+                        marginTop: '12px',
                         backgroundColor: t.mnemonicBg,
                         borderRadius: '12px',
-                        padding: '7px 12px',
+                        padding: '6px 10px',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px',
@@ -1128,9 +1128,9 @@ export default function App() {
                         style={{
                           backgroundColor: t.mnemonicBadge,
                           color: '#ffffff',
-                          padding: '2px 10px',
+                          padding: '2px 8px',
                           borderRadius: '999px',
-                          fontSize: '13px',
+                          fontSize: '12px',
                           fontWeight: 800,
                           flexShrink: 0,
                         }}
@@ -1142,7 +1142,7 @@ export default function App() {
                           flex: 1,
                           textAlign: 'center',
                           fontWeight: 800,
-                          fontSize: '17px',
+                          fontSize: 'clamp(13px, 3.2vw, 16px)',
                           color: t.textMain,
                         }}
                       >
@@ -1152,13 +1152,13 @@ export default function App() {
                   )}
                 </div>
 
-                {/* الميديا أسفل الصندوق (سواء كانت مقطع فيديو أو صورة واضحة جداً) */}
+                {/* الميديا أسفل الصندوق بنسبة أبعاد موحدة 100% للجوال واللابتوب */}
                 {hasMnemonicMedia && (
                   <div
                     style={{
                       position: 'relative',
                       zIndex: 2,
-                      marginTop: '12px',
+                      marginTop: '10px',
                       display: 'flex',
                       justifyContent: 'center',
                       borderRadius: '0 0 20px 20px',
@@ -1175,7 +1175,8 @@ export default function App() {
                         style={{
                           width: '100%',
                           maxWidth: '430px',
-                          height: '380px',
+                          // نسبة أبعاد موحدة وثابتة لا تتغير بين الجوال والكمبيوتر
+                          aspectRatio: '1 / 0.92',
                           objectFit: 'cover',
                           display: 'block',
                           backgroundColor: '#000',
@@ -1190,7 +1191,8 @@ export default function App() {
                         style={{
                           width: '100%',
                           maxWidth: '430px',
-                          height: '380px',
+                          // نفس نسبة الأبعاد الموحدة للصورة
+                          aspectRatio: '1 / 0.92',
                           objectFit: 'cover',
                           display: 'block',
                           borderTopLeftRadius: '14px',
