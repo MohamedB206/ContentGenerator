@@ -178,24 +178,24 @@ export default function App() {
     setMnemonicMediaType('none');
   };
 
-  // القوالب السبعة
+  // القوالب السبعة مع استعادة ثيم الورق الممزق الداكن الفخم كما كان في الصورة
   const themes = {
     torn_paper: {
       id: 'torn_paper',
       title: '1. كولاج التحدي (الورق الممزق)',
-      desc: 'مطابق للصورة: خلفية كحلية، ورق ممزق، وعلامة ؟ 3D',
+      desc: 'مطابق للصورة تماماً: ثيم داكن، ورق ممزق، وعلامة ؟ 3D',
       bg: '#14112E',
       waveTop: '#7548DC',
       waveSub: '#FF7A1A',
-      cardBg: '#FFFFFF',
+      cardBg: '#1B1638',
       border: '#7548DC',
       doodleColor: '#FF7A1A',
-      subjectBg: '#FF7A1A',
+      subjectBg: '#C85000',
       subjectColor: '#FFFFFF',
       optionBadge: '#7548DC',
-      mnemonicBg: '#FFF2EB',
+      mnemonicBg: '#2E1916',
       mnemonicBadge: '#FF7A1A',
-      textMain: '#14112E',
+      textMain: '#FFFFFF',
       waveType: 'torn_paper',
       isDark: true,
     },
@@ -216,6 +216,7 @@ export default function App() {
       mnemonicBadge: '#E397A1',
       textMain: '#2B1810',
       waveType: 'wave',
+      isDark: false,
     },
     blush: {
       id: 'blush',
@@ -234,6 +235,7 @@ export default function App() {
       mnemonicBadge: '#E397A1',
       textMain: '#2B1810',
       waveType: 'wave',
+      isDark: false,
     },
     sand: {
       id: 'sand',
@@ -252,6 +254,7 @@ export default function App() {
       mnemonicBadge: '#BA684A',
       textMain: '#2B1810',
       waveType: 'wave',
+      isDark: false,
     },
     navy: {
       id: 'navy',
@@ -270,6 +273,7 @@ export default function App() {
       mnemonicBadge: '#0369A1',
       textMain: '#0F172A',
       waveType: 'modern',
+      isDark: false,
     },
     emerald: {
       id: 'emerald',
@@ -288,6 +292,7 @@ export default function App() {
       mnemonicBadge: '#047857',
       textMain: '#064E3B',
       waveType: 'leaf',
+      isDark: false,
     },
     violet: {
       id: 'violet',
@@ -306,6 +311,7 @@ export default function App() {
       mnemonicBadge: '#6D28D9',
       textMain: '#2E1065',
       waveType: 'arch',
+      isDark: false,
     },
   };
 
@@ -321,68 +327,15 @@ export default function App() {
   const hasMnemonicMedia = enableMnemonic && mnemonicMediaType !== 'none' && mnemonicMediaUrl;
   const isVideoMnemonic = enableMnemonic && mnemonicMediaType === 'video' && mnemonicMediaUrl;
 
-  // التقاط الصور ورسمها على Canvas بدقة متناهية
-  const renderCardToCanvasWithImages = async (cardEl) => {
-    const basePngUrl = await toPng(cardEl, {
-      pixelRatio: 2,
-      cacheBust: false,
-    });
-
-    const baseImg = new Image();
-    await new Promise((resolve) => {
-      baseImg.onload = resolve;
-      baseImg.src = basePngUrl;
-    });
-
-    const canvas = document.createElement('canvas');
-    canvas.width = baseImg.naturalWidth;
-    canvas.height = baseImg.naturalHeight;
-    const ctx = canvas.getContext('2d');
-
-    // رسم القالب الأساسي
-    ctx.drawImage(baseImg, 0, 0, canvas.width, canvas.height);
-
-    // رسم كل الصور الداخلية بنسبتها الأصلية بدون قص
-    const cardRect = cardEl.getBoundingClientRect();
-    const scaleX = canvas.width / cardRect.width;
-    const scaleY = canvas.height / cardRect.height;
-
-    const imgElements = Array.from(cardEl.querySelectorAll('img'));
-    for (const imgEl of imgElements) {
-      if (!imgEl.src) continue;
-      const imgRect = imgEl.getBoundingClientRect();
-      const destX = (imgRect.left - cardRect.left) * scaleX;
-      const destY = (imgRect.top - cardRect.top) * scaleY;
-      const destW = imgRect.width * scaleX;
-      const destH = imgRect.height * scaleY;
-
-      const loadedImg = new Image();
-      await new Promise((resolve) => {
-        loadedImg.onload = resolve;
-        loadedImg.onerror = resolve;
-        loadedImg.src = imgEl.src;
-      });
-
-      if (loadedImg.naturalWidth > 0) {
-        ctx.save();
-        ctx.beginPath();
-        ctx.roundRect(destX, destY, destW, destH, 12 * scaleX);
-        ctx.clip();
-        ctx.drawImage(loadedImg, destX, destY, destW, destH);
-        ctx.restore();
-      }
-    }
-
-    return canvas;
-  };
-
-  // استخراج الصورة
+  // استخراج الصورة مباشرة في خطوة واحدة بدون أي تكرار للشعار
   const handleExtractImage = async () => {
     if (!templateCardRef.current) return;
     setIsExporting(true);
     try {
-      const finalCanvas = await renderCardToCanvasWithImages(templateCardRef.current);
-      const dataUrl = finalCanvas.toDataURL('image/png');
+      const dataUrl = await toPng(templateCardRef.current, {
+        pixelRatio: 2,
+        cacheBust: false,
+      });
 
       const link = document.createElement('a');
       link.download = `سؤال_عقدة_${subject || 'تحصيلي'}_${Date.now()}.png`;
@@ -403,7 +356,7 @@ export default function App() {
     }
   };
 
-  // استخراج الفيديو مدمجاً
+  // استخراج الفيديو مدمجاً بدون تكرار الشعار
   const handleExtractFullVideo = async () => {
     const video = videoPlayerRef.current;
     const cardEl = templateCardRef.current;
@@ -416,11 +369,15 @@ export default function App() {
     setExportProgress(1);
 
     try {
-      const cardCanvas = await renderCardToCanvasWithImages(cardEl);
+      const cardPngUrl = await toPng(cardEl, {
+        pixelRatio: 2,
+        cacheBust: false,
+      });
+
       const cardImg = new Image();
       await new Promise((res) => {
         cardImg.onload = res;
-        cardImg.src = cardCanvas.toDataURL('image/png');
+        cardImg.src = cardPngUrl;
       });
 
       const canvas = document.createElement('canvas');
@@ -598,9 +555,9 @@ export default function App() {
           <div className="bg-slate-900 border border-slate-700 p-6 rounded-2xl max-w-sm w-full text-center space-y-4 shadow-2xl">
             <div className="w-12 h-12 border-4 border-[#D65261] border-t-transparent rounded-full animate-spin mx-auto"></div>
             <h3 className="text-base font-black">
-              {isVideoMnemonic ? 'جاري استخراج القالب والمقطع معاً...' : 'جاري دمج وتثبيت الصور بدقة...'}
+              {isVideoMnemonic ? 'جاري استخراج القالب والمقطع معاً...' : 'جاري استخراج القالب...'}
             </h3>
-            <p className="text-xs text-slate-300">يتم معالجة المقطع والصوت حتى آخر ثانية بدقة كاملة</p>
+            <p className="text-xs text-slate-300">يتم إعداد القالب بدون أي تكرار وبأعلى دقة</p>
             {isVideoMnemonic && exportProgress > 0 && (
               <div className="w-full bg-slate-800 rounded-full h-3 overflow-hidden border border-slate-700">
                 <div
@@ -644,7 +601,7 @@ export default function App() {
                   صانع القوالب الذكي
                 </span>
               </div>
-              <p className="text-[10px] sm:text-xs text-slate-500 truncate">تثبيت نقي للشعار بدون أي تكرار</p>
+              <p className="text-[10px] sm:text-xs text-slate-500 truncate">تم تصحيح تكرار الشعار في جميع القوالب</p>
             </div>
           </div>
 
@@ -1086,10 +1043,10 @@ export default function App() {
               : 'fixed -left-[9999px] top-0 opacity-0 pointer-events-none lg:relative lg:left-0 lg:opacity-100 lg:pointer-events-auto lg:block'
           }`}
         >
-          {/* اختيار الثيمات */}
+          {/* اختيار الثيمات السبعة */}
           <div className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-4 shadow-sm space-y-2.5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-slate-800">اختر قالب الثيم:</span>
+              <span className="text-xs font-black text-slate-800">اختر ثيم القالب:</span>
               <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
                 {t.title.split('.')[1] || t.title}
               </span>
@@ -1152,7 +1109,7 @@ export default function App() {
                     border: `1.5px solid ${t.border}22`,
                   }}
                 >
-                  {/* عناصر الجرافيك لقالب الورق الممزق والكولاج (Torn Paper Theme) */}
+                  {/* عناصر الجرافيك لقالب الورق الممزق والكولاج (Torn Paper Theme) بكامل تفاصيلها الأصلية */}
                   {t.waveType === 'torn_paper' ? (
                     <>
                       {/* زاوية أعلى اليسار */}
@@ -1164,7 +1121,7 @@ export default function App() {
                         <polygon points="90,122 105,142 98,126" fill="#FF7A1A" />
                       </svg>
 
-                      {/* زاوية أعلى اليمين: رقعة الورق الممزق + إخفاء علامة الاستفهام إذا كان هناك شعار مخصص مرفوع */}
+                      {/* زاوية أعلى اليمين الأصلية مع رقعة الورق وعلامة الاستفهام 3D والسهم والأشعة */}
                       <svg viewBox="0 0 160 170" style={{ position: 'absolute', top: 0, right: 0, width: '160px', height: '170px', pointerEvents: 'none', zIndex: 1 }}>
                         <polygon points="32,70 10,75 18,84" fill="#FF7A1A" />
                         <polygon points="40,88 15,100 28,108" fill="#FF7A1A" />
@@ -1173,20 +1130,17 @@ export default function App() {
                         <path d="M 45,0 L 160,0 L 160,135 Q 120,120 75,100 L 55,60 Z" fill="#FF7A1A" />
                         <path d="M 55,0 L 160,0 L 160,125 L 148,122 L 140,130 L 130,120 L 120,125 L 110,115 L 98,118 L 88,105 L 75,110 L 68,95 L 62,70 L 52,45 L 60,25 Z" fill="#7548DC" stroke="#FFFFFF" strokeWidth="1.5" />
 
-                        {/* مجسم علامة الاستفهام 3D يظهر فقط إذا لم يقم المستخدم برفع شعار مخصص لمنع التكرار */}
-                        {!customLogo && (
-                          <g transform="translate(68, 8) rotate(10 35 60)">
-                            <text x="6" y="78" fontFamily="'Arial Black', Impact, sans-serif" fontSize="76" fontWeight="900" fill="#D95A00">?</text>
-                            <text x="4" y="76" fontFamily="'Arial Black', Impact, sans-serif" fontSize="76" fontWeight="900" fill="#FF7A1A">?</text>
-                            <text x="0" y="72" fontFamily="'Arial Black', Impact, sans-serif" fontSize="76" fontWeight="900" fill="#FFFFFF">?</text>
-                          </g>
-                        )}
+                        <g transform="translate(68, 8) rotate(10 35 60)">
+                          <text x="6" y="78" fontFamily="'Arial Black', Impact, sans-serif" fontSize="76" fontWeight="900" fill="#D95A00">?</text>
+                          <text x="4" y="76" fontFamily="'Arial Black', Impact, sans-serif" fontSize="76" fontWeight="900" fill="#FF7A1A">?</text>
+                          <text x="0" y="72" fontFamily="'Arial Black', Impact, sans-serif" fontSize="76" fontWeight="900" fill="#FFFFFF">?</text>
+                        </g>
 
                         <path d="M 125,135 Q 115,155 130,162 Q 148,165 145,142" fill="none" stroke="#FF7A1A" strokeWidth="2.5" strokeLinecap="round" />
                         <polyline points="138,140 146,141 148,150" fill="none" stroke="#FF7A1A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
 
-                      {/* زاوية أسفل اليسار */}
+                      {/* زاوية أسفل اليسار: شخبطة لولبية + مصفوفة نقاط بنفسجية + ورق ممزق */}
                       <svg viewBox="0 0 170 160" style={{ position: 'absolute', bottom: 0, left: 0, width: '170px', height: '160px', pointerEvents: 'none', zIndex: 1 }}>
                         <g fill="#6C44D6" opacity="0.85">
                           <circle cx="20" cy="25" r="3.2" />
@@ -1283,16 +1237,17 @@ export default function App() {
                     </>
                   )}
 
-                  {/* الشعار - يظهر بنقاء كامل بدون أي تكرار أو علامات خلفه */}
+                  {/* الشعار - في مكانه السليم بدون أي تكرار */}
                   <div
                     style={{
                       position: 'relative',
                       zIndex: 3,
                       display: 'flex',
+                      justifyContent: t.waveType === 'torn_paper' ? 'flex-end' : 'flex-start',
+                      width: '100%',
                       marginTop: '4px',
                       backgroundColor: 'transparent',
                       padding: 0,
-                      width: 'fit-content',
                     }}
                   >
                     {customLogo ? (
@@ -1300,7 +1255,7 @@ export default function App() {
                         src={customLogo}
                         alt="شعار"
                         style={{
-                          maxHeight: '85px',
+                          maxHeight: '80px',
                           maxWidth: '120px',
                           width: 'auto',
                           height: 'auto',
@@ -1309,7 +1264,7 @@ export default function App() {
                         }}
                       />
                     ) : (
-                      t.waveType === 'torn_paper' ? null : <UqdahLogo size={80} />
+                      <UqdahLogo size={80} />
                     )}
                   </div>
 
@@ -1336,7 +1291,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* الصندوق الأبيض للأسئلة والخيارات والربط */}
+                  {/* الصندوق الأبيض/الداكن للأسئلة والخيارات والربط */}
                   <div
                     style={{
                       position: 'relative',
@@ -1346,7 +1301,7 @@ export default function App() {
                       borderRadius: '24px',
                       padding: '40px 22px 18px',
                       boxSizing: 'border-box',
-                      boxShadow: t.isDark ? '0 8px 24px rgba(0,0,0,0.3)' : '0 4px 12px rgba(0,0,0,0.04)',
+                      boxShadow: t.isDark ? '0 8px 24px rgba(0,0,0,0.35)' : '0 4px 12px rgba(0,0,0,0.04)',
                     }}
                   >
                     {/* نص وصورة السؤال */}
@@ -1400,8 +1355,10 @@ export default function App() {
                               style={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                border: `1.8px solid ${isCorrect ? '#8CE0B0' : t.border}`,
-                                backgroundColor: isCorrect ? '#B6F2CF' : '#FFFFFF',
+                                border: `1.8px solid ${isCorrect ? '#10B981' : t.border}`,
+                                backgroundColor: isCorrect
+                                  ? (t.isDark ? '#064E3B' : '#B6F2CF')
+                                  : (t.isDark ? '#14112F' : '#FFFFFF'),
                                 borderRadius: '10px',
                                 padding: '6px 10px',
                                 gap: '8px',
