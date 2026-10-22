@@ -99,7 +99,7 @@ export default function App() {
   const qImgRef = useRef(null);
   const videoPlayerRef = useRef(null);
 
-  // مداخل وسائط منفصلة تماماً
+  // مداخل وسائط منفصلة
   const mnemonicImageInputRef = useRef(null);
   const mnemonicVideoInputRef = useRef(null);
 
@@ -322,7 +322,7 @@ export default function App() {
     // رسم القالب الأساسي
     ctx.drawImage(baseImg, 0, 0, canvas.width, canvas.height);
 
-    // رسم كل الصور الداخلية بمواقعها ونسبتها الأصلية بدون قص
+    // رسم كل الصور الداخلية بنسبتها الأصلية بدون قص
     const cardRect = cardEl.getBoundingClientRect();
     const scaleX = canvas.width / cardRect.width;
     const scaleY = canvas.height / cardRect.height;
@@ -383,7 +383,7 @@ export default function App() {
     }
   };
 
-  // استخراج الفيديو مدمجاً
+  // استخراج الفيديو مدمجاً بدون أي تعليق عند الثانية 14-16 على الآيفون
   const handleExtractFullVideo = async () => {
     const video = videoPlayerRef.current;
     const cardEl = templateCardRef.current;
@@ -418,35 +418,48 @@ export default function App() {
       const destW = videoRect.width * scaleX;
       const destH = videoRect.height * scaleY;
 
-      const stream = canvas.captureStream(30);
+      // استخدام معدل إطارات سلس ومتوافق تماماً مع الآيفون
+      const stream = canvas.captureStream(25);
 
+      // ربط مسار الصوت مع معالجة حظر Safari التلقائي بعد 15 ثانية
+      let audioCtx = null;
       try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx.state === 'suspended') await audioCtx.resume();
-        const sourceNode = audioCtx.createMediaElementSource(video);
-        const destNode = audioCtx.createMediaStreamDestination();
-        sourceNode.connect(destNode);
-        sourceNode.connect(audioCtx.destination);
-        const audioTrack = destNode.stream.getAudioTracks()[0];
-        if (audioTrack) stream.addTrack(audioTrack);
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          audioCtx = new AudioContextClass();
+          if (audioCtx.state === 'suspended') {
+            await audioCtx.resume();
+          }
+          const sourceNode = audioCtx.createMediaElementSource(video);
+          const destNode = audioCtx.createMediaStreamDestination();
+          sourceNode.connect(destNode);
+          sourceNode.connect(audioCtx.destination);
+          const audioTrack = destNode.stream.getAudioTracks()[0];
+          if (audioTrack) {
+            stream.addTrack(audioTrack);
+          }
+        }
       } catch (audioErr) {
-        console.warn('تنبيه مسار الصوت:', audioErr);
+        console.warn('تنبيه مسار الصوت في الآيفون:', audioErr);
       }
 
+      // تحديد نوع الفيديو المتوافق مع متصفحات الآيفون والكمبيوتر
       const mimeType = MediaRecorder.isTypeSupported('video/mp4;codecs=avc1')
         ? 'video/mp4;codecs=avc1'
         : MediaRecorder.isTypeSupported('video/mp4')
         ? 'video/mp4'
-        : 'video/webm;codecs=vp9';
+        : MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+        ? 'video/webm;codecs=vp9'
+        : 'video/webm';
 
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType,
-        videoBitsPerSecond: 6000000,
+        videoBitsPerSecond: 3500000, // معدل متوازن ومستقر يمنع تعليق ذاكرة الآيفون
       });
 
       const chunks = [];
       mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunks.push(e.data);
+        if (e.data && e.data.size > 0) chunks.push(e.data);
       };
 
       mediaRecorder.onstop = () => {
@@ -461,6 +474,9 @@ export default function App() {
         setExportProgress(0);
         video.pause();
         video.currentTime = 0;
+        if (audioCtx && audioCtx.state !== 'closed') {
+          try { audioCtx.close(); } catch (_) {}
+        }
       };
 
       video.currentTime = 0;
@@ -472,16 +488,24 @@ export default function App() {
         await video.play();
       }
 
-      mediaRecorder.start();
+      mediaRecorder.start(500); // تقسيم البيانات كل نصف ثانية لمنع تجمد الآيفون
 
-      const totalDuration = video.duration || 5;
+      const totalDuration = video.duration || 10;
+      let animationFrameId = null;
 
-      const drawFrame = () => {
-        if (video.paused || video.ended) {
+      // حلقة رسم قوية تستمر حتى آخر ثانية بدون توقف
+      const renderFrame = () => {
+        if (video.paused || video.ended || video.currentTime >= totalDuration) {
           if (mediaRecorder.state === 'recording') {
             mediaRecorder.stop();
           }
+          if (animationFrameId) cancelAnimationFrame(animationFrameId);
           return;
+        }
+
+        // الحفاظ على تدفق الصوت نشطاً في الآيفون
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
         }
 
         ctx.drawImage(cardImg, 0, 0, canvas.width, canvas.height);
@@ -492,10 +516,10 @@ export default function App() {
         const percent = Math.min(99, Math.round((video.currentTime / totalDuration) * 100));
         setExportProgress(percent);
 
-        requestAnimationFrame(drawFrame);
+        animationFrameId = requestAnimationFrame(renderFrame);
       };
 
-      drawFrame();
+      animationFrameId = requestAnimationFrame(renderFrame);
 
       video.onended = () => {
         if (mediaRecorder.state === 'recording') {
@@ -551,7 +575,7 @@ export default function App() {
             <h3 className="text-base font-black">
               {isVideoMnemonic ? 'جاري استخراج القالب والمقطع معاً...' : 'جاري دمج وتثبيت الصور بدقة...'}
             </h3>
-            <p className="text-xs text-slate-300">يتم معالجة الصور يدوياً لتظهر بكامل وضوحها بدون أي قص</p>
+            <p className="text-xs text-slate-300">يتم معالجة المقطع والصوت حتى آخر ثانية بدقة كاملة</p>
             {isVideoMnemonic && exportProgress > 0 && (
               <div className="w-full bg-slate-800 rounded-full h-3 overflow-hidden border border-slate-700">
                 <div
@@ -595,7 +619,7 @@ export default function App() {
                   صانع القوالب الذكي
                 </span>
               </div>
-              <p className="text-[10px] sm:text-xs text-slate-500 truncate">بوردر متكيف مع حجم الميديا بدون قص</p>
+              <p className="text-[10px] sm:text-xs text-slate-500 truncate">تصدير فيديو متواصل بدون تعليق</p>
             </div>
           </div>
 
@@ -1347,7 +1371,7 @@ export default function App() {
                     )}
                   </div>
 
-                  {/* الميديا أسفل الصندوق: بوردر متكيف تلقائياً يلتف حول الصورة أو الفيديو بنسبتها الأصلية بدون أي قص */}
+                  {/* الميديا أسفل الصندوق */}
                   {hasMnemonicMedia && (
                     <div
                       style={{
