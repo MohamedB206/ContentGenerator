@@ -55,8 +55,8 @@ export default function App() {
   const [subject, setSubject] = useState('احياء');
   const [newSubjectInput, setNewSubjectInput] = useState('');
 
-  // القالب المختار
-  const [selectedTemplate, setSelectedTemplate] = useState('cream');
+  // القالب المختار الافتراضي
+  const [selectedTemplate, setSelectedTemplate] = useState('torn_paper');
 
   // السؤال
   const [questionText, setQuestionText] = useState('أي الهرمونات التالية يُنتج في الخصية؟');
@@ -133,7 +133,7 @@ export default function App() {
       window.removeEventListener('resize', handleResize);
       observer.disconnect();
     };
-  }, [options, questionText, questionImage, mnemonicText, mnemonicMediaUrl, mobileTab]);
+  }, [options, questionText, questionImage, mnemonicText, mnemonicMediaUrl, mobileTab, selectedTemplate]);
 
   const handleFileUpload = (file, callback) => {
     if (!file) return;
@@ -178,11 +178,31 @@ export default function App() {
     setMnemonicMediaType('none');
   };
 
+  // القوالب السبعة مع إضافة قالب الورق الممزق والكولاج الجديد
   const themes = {
+    torn_paper: {
+      id: 'torn_paper',
+      title: '1. كولاج التحدي (الورق الممزق)',
+      desc: 'مطابق للصورة: خلفية كحلية، ورق ممزق، وعلامة ؟ 3D',
+      bg: '#14112E',
+      waveTop: '#7548DC',
+      waveSub: '#FF7A1A',
+      cardBg: '#FFFFFF',
+      border: '#7548DC',
+      doodleColor: '#FF7A1A',
+      subjectBg: '#FF7A1A',
+      subjectColor: '#FFFFFF',
+      optionBadge: '#7548DC',
+      mnemonicBg: '#FFF2EB',
+      mnemonicBadge: '#FF7A1A',
+      textMain: '#14112E',
+      waveType: 'torn_paper',
+      isDark: true,
+    },
     cream: {
       id: 'cream',
-      title: '1. عقدة الأصلي (الكريمي)',
-      desc: 'مطابق للصورة الكلاسيكية',
+      title: '2. عقدة الأصلي (الكريمي)',
+      desc: 'مطابق للتصميم الكلاسيكي',
       bg: '#F8F5EC',
       waveTop: '#DE6E79',
       waveSub: '#F3C75F',
@@ -199,7 +219,7 @@ export default function App() {
     },
     blush: {
       id: 'blush',
-      title: '2. عقدة الوردي الفاتح',
+      title: '3. عقدة الوردي الفاتح',
       desc: 'نسق ناعم بخلفية وردية',
       bg: '#FDF3F4',
       waveTop: '#C94A58',
@@ -217,7 +237,7 @@ export default function App() {
     },
     sand: {
       id: 'sand',
-      title: '3. عقدة الرملي الدافئ',
+      title: '4. عقدة الرملي الدافئ',
       desc: 'بيج كلاسيكي دافئ',
       bg: '#F4EFE6',
       waveTop: '#B83B4A',
@@ -235,7 +255,7 @@ export default function App() {
     },
     navy: {
       id: 'navy',
-      title: '4. التحصيلي الملكي (كحلي وسيان)',
+      title: '5. التحصيلي الملكي (كحلي وسيان)',
       desc: 'مود هندسي للفيزياء والرياضيات',
       bg: '#F0F4F9',
       waveTop: '#0F2744',
@@ -253,7 +273,7 @@ export default function App() {
     },
     emerald: {
       id: 'emerald',
-      title: '5. المينت الأكاديمي (أخضر زمردي)',
+      title: '6. المينت الأكاديمي (أخضر زمردي)',
       desc: 'مود هادئ للأحياء والكيمياء',
       bg: '#F0FDF4',
       waveTop: '#064E3B',
@@ -271,7 +291,7 @@ export default function App() {
     },
     violet: {
       id: 'violet',
-      title: '6. البنفسجي الإبداعي (ذهبي وموف)',
+      title: '7. البنفسجي الإبداعي (ذهبي وموف)',
       desc: 'ثيم فخم للقدرات والشامل',
       bg: '#F6F3FF',
       waveTop: '#4C1D95',
@@ -289,7 +309,7 @@ export default function App() {
     },
   };
 
-  const t = themes[selectedTemplate] || themes.cream;
+  const t = themes[selectedTemplate] || themes.torn_paper;
   const arabicLabels = ['أ', 'ب', 'ج', 'د'];
 
   const activeOptions = options.filter(
@@ -396,7 +416,6 @@ export default function App() {
     setExportProgress(1);
 
     try {
-      // 1. رسم خلفية القالب الأساسية بدقة كاملة
       const cardCanvas = await renderCardToCanvasWithImages(cardEl);
       const cardImg = new Image();
       await new Promise((res) => {
@@ -409,7 +428,6 @@ export default function App() {
       canvas.height = cardImg.naturalHeight;
       const ctx = canvas.getContext('2d');
 
-      // رسم الإطار الأول على الـ Canvas قبل بدء التسجيل لمنع أي تأخير زمني
       ctx.drawImage(cardImg, 0, 0, canvas.width, canvas.height);
 
       const videoRect = video.getBoundingClientRect();
@@ -422,15 +440,12 @@ export default function App() {
       const destW = videoRect.width * scaleX;
       const destH = videoRect.height * scaleY;
 
-      // رسم أول إطار من الفيديو داخل الـ Canvas
       ctx.save();
       ctx.drawImage(video, destX, destY, destW, destH);
       ctx.restore();
 
-      // 2. إعداد تدفق الفيديو المتزامن
       const stream = canvas.captureStream(30);
 
-      // 3. إعداد مسار الصوت بدقة مع استئناف فوري
       let audioCtx = null;
       try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -487,7 +502,6 @@ export default function App() {
         }
       };
 
-      // 4. ضبط التوقيت الموحد لتفادي انزلاق الصوت عن الصورة
       video.currentTime = 0;
       video.muted = false;
 
@@ -503,12 +517,10 @@ export default function App() {
           return;
         }
 
-        // الحفاظ على تدفق الصوت نشطاً
         if (audioCtx && audioCtx.state === 'suspended') {
           audioCtx.resume();
         }
 
-        // رسم خلفية القالب وفوقها إطار الفيديو الحي
         ctx.drawImage(cardImg, 0, 0, canvas.width, canvas.height);
         ctx.save();
         ctx.drawImage(video, destX, destY, destW, destH);
@@ -520,7 +532,6 @@ export default function App() {
         animationFrameId = requestAnimationFrame(renderLoop);
       };
 
-      // البدء التزامني في نفس اللحظة بمجرد صدور أول صوت وإطار
       video.onplaying = () => {
         if (mediaRecorder.state !== 'recording') {
           mediaRecorder.start(250);
@@ -589,7 +600,7 @@ export default function App() {
             <h3 className="text-base font-black">
               {isVideoMnemonic ? 'جاري استخراج القالب والمقطع معاً...' : 'جاري دمج وتثبيت الصور بدقة...'}
             </h3>
-            <p className="text-xs text-slate-300">يتم مزامنة الصوت والصورة حتى آخر ثانية بدقة كاملة</p>
+            <p className="text-xs text-slate-300">يتم معالجة المقطع والصوت حتى آخر ثانية بدقة كاملة</p>
             {isVideoMnemonic && exportProgress > 0 && (
               <div className="w-full bg-slate-800 rounded-full h-3 overflow-hidden border border-slate-700">
                 <div
@@ -633,7 +644,7 @@ export default function App() {
                   صانع القوالب الذكي
                 </span>
               </div>
-              <p className="text-[10px] sm:text-xs text-slate-500 truncate">تزامن فوري للصوت والصورة</p>
+              <p className="text-[10px] sm:text-xs text-slate-500 truncate">قوالب التحدي والألغاز المتقدمة</p>
             </div>
           </div>
 
@@ -1075,10 +1086,10 @@ export default function App() {
               : 'fixed -left-[9999px] top-0 opacity-0 pointer-events-none lg:relative lg:left-0 lg:opacity-100 lg:pointer-events-auto lg:block'
           }`}
         >
-          {/* اختيار الثيمات الـ 6 */}
+          {/* اختيار الثيمات مع تمييز قالب الورق الممزق */}
           <div className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-4 shadow-sm space-y-2.5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-slate-800">اختر قالب الثيم:</span>
+              <span className="text-xs font-black text-slate-800">اختر قالب الثيم (القالب الجديد 1):</span>
               <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
                 {t.title.split('.')[1] || t.title}
               </span>
@@ -1141,60 +1152,166 @@ export default function App() {
                     border: `1.5px solid ${t.border}22`,
                   }}
                 >
-                  {/* النقوش العلمية في الخلفية */}
-                  <svg
-                    viewBox="0 0 800 750"
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      width: '100%',
-                      height: '100%',
-                      pointerEvents: 'none',
-                      opacity: 0.35,
-                    }}
-                    preserveAspectRatio="xMidYMid slice"
-                  >
-                    <g fill={t.doodleColor} stroke={t.doodleColor} fontFamily="serif" fontSize="22">
-                      <text x="110" y="65" stroke="none">= ln x</text>
-                      <text x="450" y="75" stroke="none">.. = tan</text>
-                      <text x="720" y="210" stroke="none">2R</text>
-                      <text x="610" y="520" stroke="none" fontSize="28">tan</text>
-                      <text x="640" y="560" stroke="none">E = mc²</text>
-                      <text x="690" y="625" stroke="none">sin</text>
-                      <text x="690" y="655" stroke="none">cos</text>
-                      <text x="15" y="370" stroke="none">in</text>
-                      <text x="5" y="405" stroke="none">cos</text>
-                      <text x="150" y="595" stroke="none" fontSize="28">%</text>
-                      <polygon points="240,35 290,90 215,90" fill="none" strokeWidth="2" />
-                      <polygon points="680,600 745,675 655,675" fill="none" strokeWidth="2" />
-                    </g>
-                  </svg>
+                  {/* عناصر الجرافيك لقالب الورق الممزق والكولاج (Torn Paper Theme) */}
+                  {t.waveType === 'torn_paper' ? (
+                    <>
+                      {/* زاوية أعلى اليسار: الورق الممزق البنفسجي والبرتقالي مع أشعة الانفجار */}
+                      <svg viewBox="0 0 170 145" style={{ position: 'absolute', top: 0, left: 0, width: '170px', height: '145px', pointerEvents: 'none', zIndex: 1 }}>
+                        {/* طبقة برتقالية سفلية */}
+                        <path d="M 0,0 L 140,0 Q 120,35 90,68 L 52,108 L 0,132 Z" fill="#FF7A1A" />
+                        {/* طبقة بنفسجية علوية مع حافة بيضاء ممزقة */}
+                        <path d="M 0,0 L 130,0 L 126,10 L 120,14 L 122,24 L 115,30 L 117,38 L 108,46 L 110,54 L 98,62 L 95,72 L 80,80 L 78,90 L 62,98 L 58,108 L 40,116 L 35,124 L 18,128 L 0,122 Z" fill="#7548DC" stroke="#FFFFFF" strokeWidth="1.5" />
+                        {/* أشعة الانفجار البرتقالية الثلاثية */}
+                        <polygon points="122,78 140,90 135,76" fill="#FF7A1A" />
+                        <polygon points="106,98 124,115 118,100" fill="#FF7A1A" />
+                        <polygon points="90,122 105,142 98,126" fill="#FF7A1A" />
+                      </svg>
 
-                  {/* الموجة العلوية */}
-                  {t.waveType === 'modern' ? (
-                    <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '110px', pointerEvents: 'none' }} preserveAspectRatio="none">
-                      <path d="M 0,0 L 800,0 L 800,60 L 500,105 L 200,45 L 0,85 Z" fill={t.waveSub} opacity="0.65" />
-                      <path d="M 0,0 L 800,0 L 800,45 L 480,90 L 180,30 L 0,65 Z" fill={t.waveTop} />
-                    </svg>
-                  ) : t.waveType === 'leaf' ? (
-                    <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '110px', pointerEvents: 'none' }} preserveAspectRatio="none">
-                      <path d="M 0,0 L 800,0 L 800,75 Q 600,125 400,60 Q 200,5 0,80 Z" fill={t.waveSub} opacity="0.65" />
-                      <path d="M 0,0 L 800,0 L 800,55 Q 580,105 380,45 Q 180,0 0,60 Z" fill={t.waveTop} />
-                    </svg>
-                  ) : t.waveType === 'arch' ? (
-                    <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '110px', pointerEvents: 'none' }} preserveAspectRatio="none">
-                      <path d="M 0,0 L 800,0 L 800,85 Q 550,-10 320,85 Q 150,130 0,60 Z" fill={t.waveSub} opacity="0.75" />
-                      <path d="M 0,0 L 800,0 L 800,65 Q 530,-25 300,70 Q 140,110 0,45 Z" fill={t.waveTop} />
-                    </svg>
+                      {/* زاوية أعلى اليمين: رقعة الورق الممزق + علامة الاستفهام 3D + الأشعة + السهم */}
+                      <svg viewBox="0 0 160 170" style={{ position: 'absolute', top: 0, right: 0, width: '160px', height: '170px', pointerEvents: 'none', zIndex: 1 }}>
+                        {/* الأشعة البرتقالية يسار علامة الاستفهام */}
+                        <polygon points="32,70 10,75 18,84" fill="#FF7A1A" />
+                        <polygon points="40,88 15,100 28,108" fill="#FF7A1A" />
+                        <polygon points="52,108 30,128 42,130" fill="#FF7A1A" />
+
+                        {/* رقعة الورق البرتقالية السفلية */}
+                        <path d="M 45,0 L 160,0 L 160,135 Q 120,120 75,100 L 55,60 Z" fill="#FF7A1A" />
+
+                        {/* رقعة الورق البنفسجية الممزقة */}
+                        <path d="M 55,0 L 160,0 L 160,125 L 148,122 L 140,130 L 130,120 L 120,125 L 110,115 L 98,118 L 88,105 L 75,110 L 68,95 L 62,70 L 52,45 L 60,25 Z" fill="#7548DC" stroke="#FFFFFF" strokeWidth="1.5" />
+
+                        {/* مجسم علامة الاستفهام الثلاثي الأبعاد */}
+                        <g transform="translate(68, 8) rotate(10 35 60)">
+                          {/* البروز البرتقالي لعلامة الاستفهام 3D */}
+                          <text x="6" y="78" fontFamily="'Arial Black', Impact, sans-serif" fontSize="76" fontWeight="900" fill="#D95A00">?</text>
+                          <text x="4" y="76" fontFamily="'Arial Black', Impact, sans-serif" fontSize="76" fontWeight="900" fill="#FF7A1A">?</text>
+                          {/* الوجه الأبيض لعلامة الاستفهام */}
+                          <text x="0" y="72" fontFamily="'Arial Black', Impact, sans-serif" fontSize="76" fontWeight="900" fill="#FFFFFF">?</text>
+                        </g>
+
+                        {/* السهم البرتقالي اليدوي المنحني */}
+                        <path d="M 125,135 Q 115,155 130,162 Q 148,165 145,142" fill="none" stroke="#FF7A1A" strokeWidth="2.5" strokeLinecap="round" />
+                        <polyline points="138,140 146,141 148,150" fill="none" stroke="#FF7A1A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+
+                      {/* زاوية أسفل اليسار: شخبطة لولبية + مصفوفة نقاط بنفسجية + ورق ممزق */}
+                      <svg viewBox="0 0 170 160" style={{ position: 'absolute', bottom: 0, left: 0, width: '170px', height: '160px', pointerEvents: 'none', zIndex: 1 }}>
+                        {/* مصفوفة النقاط البنفسجية */}
+                        <g fill="#6C44D6" opacity="0.85">
+                          <circle cx="20" cy="25" r="3.2" />
+                          <circle cx="36" cy="25" r="3.2" />
+                          <circle cx="52" cy="25" r="3.2" />
+                          <circle cx="20" cy="40" r="3.2" />
+                          <circle cx="36" cy="40" r="3.2" />
+                          <circle cx="52" cy="40" r="3.2" />
+                          <circle cx="20" cy="55" r="3.2" />
+                          <circle cx="36" cy="55" r="3.2" />
+                          <circle cx="52" cy="55" r="3.2" />
+                        </g>
+
+                        {/* الشخبطة البرتقالية الحرة (Scribble loop) */}
+                        <path d="M 12,95 C 35,50 75,55 60,85 C 48,110 18,90 25,72 C 32,55 72,70 65,100" fill="none" stroke="#FF7A1A" strokeWidth="3.5" strokeLinecap="round" />
+
+                        {/* طبقة برتقالية سفلية */}
+                        <path d="M 0,160 L 165,160 Q 130,125 90,118 L 45,125 L 0,85 Z" fill="#FF7A1A" />
+                        {/* طبقة بنفسجية ممزقة مع حافة بيضاء */}
+                        <path d="M 0,160 L 155,160 L 150,150 L 140,145 L 132,152 L 120,142 L 110,148 L 98,135 L 85,142 L 72,130 L 60,135 L 45,120 L 30,126 L 15,105 L 0,110 Z" fill="#7548DC" stroke="#FFFFFF" strokeWidth="1.5" />
+                      </svg>
+
+                      {/* زاوية أسفل اليمين: ورق ممزق + أشعة برتقالية */}
+                      <svg viewBox="0 0 170 140" style={{ position: 'absolute', bottom: 0, right: 0, width: '170px', height: '140px', pointerEvents: 'none', zIndex: 1 }}>
+                        {/* أشعة الانفجار البرتقالية */}
+                        <polygon points="50,90 28,100 38,108" fill="#FF7A1A" />
+                        <polygon points="68,70 48,82 58,90" fill="#FF7A1A" />
+
+                        {/* طبقة برتقالية */}
+                        <path d="M 170,140 L 0,140 Q 35,105 80,95 L 125,105 L 170,65 Z" fill="#FF7A1A" />
+                        {/* طبقة بنفسجية ممزقة بحافة بيضاء */}
+                        <path d="M 170,140 L 10,140 L 22,130 L 35,134 L 48,122 L 60,128 L 75,115 L 90,120 L 105,108 L 120,115 L 135,100 L 150,108 L 160,85 L 170,90 Z" fill="#7548DC" stroke="#FFFFFF" strokeWidth="1.5" />
+                      </svg>
+
+                      {/* منتصف الحافة اليمنى: رقعة ورق ممزقة ونقاط بنفسجية */}
+                      <svg viewBox="0 0 50 120" style={{ position: 'absolute', top: '45%', right: 0, width: '45px', height: '110px', pointerEvents: 'none', zIndex: 1 }}>
+                        <g fill="#6C44D6" opacity="0.8">
+                          <circle cx="12" cy="15" r="2.8" />
+                          <circle cx="24" cy="15" r="2.8" />
+                          <circle cx="12" cy="28" r="2.8" />
+                          <circle cx="24" cy="28" r="2.8" />
+                        </g>
+                        <path d="M 45,35 L 5,60 L 15,75 L 8,90 L 45,105 Z" fill="#FF7A1A" />
+                        <path d="M 45,40 L 15,62 L 20,72 L 14,85 L 45,98 Z" fill="#7548DC" stroke="#FFFFFF" strokeWidth="1.2" />
+                      </svg>
+                    </>
                   ) : (
-                    <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '110px', pointerEvents: 'none' }} preserveAspectRatio="none">
-                      <path d="M 0,32 Q 210,-15 470,22 Q 650,120 800,88 L 800,0 L 0,0 Z" fill={t.waveSub} opacity="0.65" />
-                      <path d="M 0,24 Q 230,-18 480,15 Q 660,110 800,82 L 800,58 Q 660,85 490,0 L 0,0 Z" fill={t.waveTop} />
-                    </svg>
+                    <>
+                      {/* النقوش العلمية في الخلفية لباقي القوالب */}
+                      <svg
+                        viewBox="0 0 800 750"
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          width: '100%',
+                          height: '100%',
+                          pointerEvents: 'none',
+                          opacity: 0.35,
+                        }}
+                        preserveAspectRatio="xMidYMid slice"
+                      >
+                        <g fill={t.doodleColor} stroke={t.doodleColor} fontFamily="serif" fontSize="22">
+                          <text x="110" y="65" stroke="none">= ln x</text>
+                          <text x="450" y="75" stroke="none">.. = tan</text>
+                          <text x="720" y="210" stroke="none">2R</text>
+                          <text x="610" y="520" stroke="none" fontSize="28">tan</text>
+                          <text x="640" y="560" stroke="none">E = mc²</text>
+                          <text x="690" y="625" stroke="none">sin</text>
+                          <text x="690" y="655" stroke="none">cos</text>
+                          <text x="15" y="370" stroke="none">in</text>
+                          <text x="5" y="405" stroke="none">cos</text>
+                          <text x="150" y="595" stroke="none" fontSize="28">%</text>
+                          <polygon points="240,35 290,90 215,90" fill="none" strokeWidth="2" />
+                          <polygon points="680,600 745,675 655,675" fill="none" strokeWidth="2" />
+                        </g>
+                      </svg>
+
+                      {/* الموجات العلوية للقوالب الأخرى */}
+                      {t.waveType === 'modern' ? (
+                        <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '110px', pointerEvents: 'none' }} preserveAspectRatio="none">
+                          <path d="M 0,0 L 800,0 L 800,60 L 500,105 L 200,45 L 0,85 Z" fill={t.waveSub} opacity="0.65" />
+                          <path d="M 0,0 L 800,0 L 800,45 L 480,90 L 180,30 L 0,65 Z" fill={t.waveTop} />
+                        </svg>
+                      ) : t.waveType === 'leaf' ? (
+                        <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '110px', pointerEvents: 'none' }} preserveAspectRatio="none">
+                          <path d="M 0,0 L 800,0 L 800,75 Q 600,125 400,60 Q 200,5 0,80 Z" fill={t.waveSub} opacity="0.65" />
+                          <path d="M 0,0 L 800,0 L 800,55 Q 580,105 380,45 Q 180,0 0,60 Z" fill={t.waveTop} />
+                        </svg>
+                      ) : t.waveType === 'arch' ? (
+                        <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '110px', pointerEvents: 'none' }} preserveAspectRatio="none">
+                          <path d="M 0,0 L 800,0 L 800,85 Q 550,-10 320,85 Q 150,130 0,60 Z" fill={t.waveSub} opacity="0.75" />
+                          <path d="M 0,0 L 800,0 L 800,65 Q 530,-25 300,70 Q 140,110 0,45 Z" fill={t.waveTop} />
+                        </svg>
+                      ) : (
+                        <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '110px', pointerEvents: 'none' }} preserveAspectRatio="none">
+                          <path d="M 0,32 Q 210,-15 470,22 Q 650,120 800,88 L 800,0 L 0,0 Z" fill={t.waveSub} opacity="0.65" />
+                          <path d="M 0,24 Q 230,-18 480,15 Q 660,110 800,82 L 800,58 Q 660,85 490,0 L 0,0 Z" fill={t.waveTop} />
+                        </svg>
+                      )}
+                    </>
                   )}
 
                   {/* الشعار */}
-                  <div style={{ position: 'relative', zIndex: 2, display: 'flex', marginTop: '4px' }}>
+                  <div
+                    style={{
+                      position: 'relative',
+                      zIndex: 2,
+                      display: 'flex',
+                      marginTop: '4px',
+                      backgroundColor: t.isDark ? '#FFFDF9' : 'transparent',
+                      borderRadius: '16px',
+                      padding: t.isDark ? '4px 8px' : 0,
+                      width: 'fit-content',
+                      boxShadow: t.isDark ? '0 4px 12px rgba(0,0,0,0.15)' : 'none',
+                    }}
+                  >
                     {customLogo ? (
                       <img src={customLogo} alt="أكاديمية عقدة" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
                     ) : (
@@ -1217,7 +1334,8 @@ export default function App() {
                         fontWeight: 800,
                         fontSize: '28px',
                         textShadow: '0 1px 2px rgba(0,0,0,0.15)',
-                        boxShadow: '0 4px 10px rgba(0,0,0,0.08)',
+                        boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
+                        border: t.isDark ? '2.5px solid #FFFFFF' : 'none',
                       }}
                     >
                       {subject || 'احياء'}
@@ -1230,10 +1348,11 @@ export default function App() {
                       position: 'relative',
                       zIndex: 2,
                       backgroundColor: t.cardBg,
-                      border: `1.8px solid ${t.border}`,
+                      border: `2px solid ${t.border}`,
                       borderRadius: '24px',
                       padding: '40px 22px 18px',
                       boxSizing: 'border-box',
+                      boxShadow: t.isDark ? '0 8px 24px rgba(0,0,0,0.3)' : '0 4px 12px rgba(0,0,0,0.04)',
                     }}
                   >
                     {/* نص وصورة السؤال */}
@@ -1385,7 +1504,7 @@ export default function App() {
                     )}
                   </div>
 
-                  {/* الميديا أسفل الصندوق */}
+                  {/* الميديا أسفل الصندوق: بوردر متكيف تلقائياً بدون قص */}
                   {hasMnemonicMedia && (
                     <div
                       style={{
@@ -1402,8 +1521,8 @@ export default function App() {
                         style={{
                           borderRadius: '16px',
                           overflow: 'hidden',
-                          border: `1.5px solid ${t.border}44`,
-                          boxShadow: '0 4px 14px rgba(0,0,0,0.06)',
+                          border: `2px solid ${t.border}`,
+                          boxShadow: '0 6px 18px rgba(0,0,0,0.18)',
                           display: 'inline-flex',
                           justifyContent: 'center',
                           alignItems: 'center',
