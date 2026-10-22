@@ -86,6 +86,9 @@ export default function App() {
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
 
+  // معاينة الصورة المستخرجة للآيفون لحفظها بضغطة مطولة
+  const [extractedPreviewImage, setExtractedPreviewImage] = useState(null);
+
   // مراجع القالب
   const previewWrapperRef = useRef(null);
   const templateCardRef = useRef(null);
@@ -96,7 +99,7 @@ export default function App() {
   const qImgRef = useRef(null);
   const videoPlayerRef = useRef(null);
 
-  // مراجع منفصلة ومستقلة لحل مشكلة الضغط مرتين نهائياً
+  // مداخل وسائط منفصلة لحل مشكلة الضغط مرتين
   const mnemonicImageInputRef = useRef(null);
   const mnemonicVideoInputRef = useRef(null);
 
@@ -298,51 +301,84 @@ export default function App() {
   const hasMnemonicMedia = enableMnemonic && mnemonicMediaType !== 'none' && mnemonicMediaUrl;
   const isVideoMnemonic = enableMnemonic && mnemonicMediaType === 'video' && mnemonicMediaUrl;
 
-  // دالة التقاط خاصة ومضمونة للآيفون وسفاري تعالج علل الـ WebKit
-  const safeIphoneCapture = async (element) => {
-    // 1. التأكد التام من تحميل وتجهيز كافة الصور داخل الـ DOM
-    const imgs = Array.from(element.querySelectorAll('img'));
-    await Promise.all(
-      imgs.map(async (img) => {
-        if (!img.complete) {
-          await new Promise((res) => {
-            img.onload = res;
-            img.onerror = res;
-          });
-        }
-        if (img.decode) {
-          try {
-            await img.decode();
-          } catch (_) {}
-        }
-      })
-    );
-
-    // 2. عمل ضربة تمهيدية (Warm-up) ضرورية جداً لمحرك WebKit في الآيفون
-    try {
-      await toPng(element, { pixelRatio: 1, cacheBust: false });
-    } catch (_) {}
-
-    await new Promise((r) => setTimeout(r, 200));
-
-    // 3. الالتقاط الفعلي مع إعدادات متوافقة مع أجهزة أبل
-    return await toPng(element, {
+  // دالة متطورة ترسم كل الصور مباشرة فوق الـ Canvas لتجاوز حظر الـ WebKit في الآيفون 100%
+  const renderCardToCanvasWithImages = async (cardEl) => {
+    // 1. التقاط إطار القالب بدقة
+    const basePngUrl = await toPng(cardEl, {
       pixelRatio: 2,
       cacheBust: false,
-      backgroundColor: t.bg,
     });
+
+    const baseImg = new Image();
+    await new Promise((resolve) => {
+      baseImg.onload = resolve;
+      baseImg.src = basePngUrl;
+    });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = baseImg.naturalWidth;
+    canvas.height = baseImg.naturalHeight;
+    const ctx = canvas.getContext('2d');
+
+    // رسم القالب الأساسي
+    ctx.drawImage(baseImg, 0, 0, canvas.width, canvas.height);
+
+    // 2. البحث عن كل الصور داخل القالب ورسمها يدوياً فوق الـ Canvas بمواقعها وأبعادها الدقيقة
+    const cardRect = cardEl.getBoundingClientRect();
+    const scaleX = canvas.width / cardRect.width;
+    const scaleY = canvas.height / cardRect.height;
+
+    const imgElements = Array.from(cardEl.querySelectorAll('img'));
+    for (const imgEl of imgElements) {
+      if (!imgEl.src) continue;
+      const imgRect = imgEl.getBoundingClientRect();
+      const destX = (imgRect.left - cardRect.left) * scaleX;
+      const destY = (imgRect.top - cardRect.top) * scaleY;
+      const destW = imgRect.width * scaleX;
+      const destH = imgRect.height * scaleY;
+
+      const loadedImg = new Image();
+      await new Promise((resolve) => {
+        loadedImg.onload = resolve;
+        loadedImg.onerror = resolve;
+        loadedImg.src = imgEl.src;
+      });
+
+      if (loadedImg.naturalWidth > 0) {
+        ctx.save();
+        // تطبيق نفس الـ borderRadius الخاص بالصورة
+        ctx.beginPath();
+        ctx.roundRect(destX, destY, destW, destH, 8 * scaleX);
+        ctx.clip();
+        ctx.drawImage(loadedImg, destX, destY, destW, destH);
+        ctx.restore();
+      }
+    }
+
+    return canvas;
   };
 
-  // استخراج الصورة
+  // استخراج الصورة مع توافق تام للأجهزة
   const handleExtractImage = async () => {
     if (!templateCardRef.current) return;
     setIsExporting(true);
     try {
-      const dataUrl = await safeIphoneCapture(templateCardRef.current);
+      const finalCanvas = await renderCardToCanvasWithImages(templateCardRef.current);
+      const dataUrl = finalCanvas.toDataURL('image/png');
+
+      // تجربة التنزيل المباشر
       const link = document.createElement('a');
       link.download = `سؤال_عقدة_${subject || 'تحصيلي'}_${Date.now()}.png`;
       link.href = dataUrl;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
+
+      // في حال كان آيفون وسفاري منع التنزيل التلقائي، نظهر نافذة المعاينة للحفظ بضغطة واحدة
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      if (isIOS) {
+        setExtractedPreviewImage(dataUrl);
+      }
     } catch (err) {
       console.error(err);
       alert('حدث خطأ أثناء استخراج الصورة، يرجى المحاولة مجدداً');
@@ -364,11 +400,11 @@ export default function App() {
     setExportProgress(1);
 
     try {
-      const cardPngUrl = await safeIphoneCapture(cardEl);
+      const cardCanvas = await renderCardToCanvasWithImages(cardEl);
       const cardImg = new Image();
       await new Promise((res) => {
         cardImg.onload = res;
-        cardImg.src = cardPngUrl;
+        cardImg.src = cardCanvas.toDataURL('image/png');
       });
 
       const canvas = document.createElement('canvas');
@@ -480,15 +516,46 @@ export default function App() {
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#F4F6F9] text-slate-900 flex flex-col font-sans">
-      {/* نافذة التحميل */}
+      {/* نافذة معاينة الصورة للآيفون لحفظها مباشرة في ألبوم الصور */}
+      {extractedPreviewImage && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-5 space-y-4 shadow-2xl text-center">
+            <div className="flex items-center justify-between pb-2 border-b">
+              <span className="text-sm font-black text-slate-900">تم استخراج الصورة بنجاح 🎉</span>
+              <button
+                type="button"
+                onClick={() => setExtractedPreviewImage(null)}
+                className="text-slate-400 hover:text-slate-700 text-lg font-bold px-2 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-xs text-slate-600 font-bold">
+              اضغط مطولاً على الصورة أدناه ثم اختر <span className="text-[#D65261]">"حفظ في الصور" (Save to Photos)</span>
+            </p>
+            <div className="max-h-[60vh] overflow-auto rounded-2xl border border-slate-200">
+              <img src={extractedPreviewImage} alt="المعاينة النهائية" className="w-full h-auto block" />
+            </div>
+            <button
+              type="button"
+              onClick={() => setExtractedPreviewImage(null)}
+              className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-xs font-black cursor-pointer"
+            >
+              إغلاق
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* نافذة التحميل أثناء التصدير */}
       {isExporting && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center text-white p-4">
           <div className="bg-slate-900 border border-slate-700 p-6 rounded-2xl max-w-sm w-full text-center space-y-4 shadow-2xl">
             <div className="w-12 h-12 border-4 border-[#D65261] border-t-transparent rounded-full animate-spin mx-auto"></div>
             <h3 className="text-base font-black">
-              {isVideoMnemonic ? 'جاري استخراج القالب والمقطع معاً...' : 'جاري معالجة وتثبيت الصور...'}
+              {isVideoMnemonic ? 'جاري استخراج القالب والمقطع معاً...' : 'جاري دمج وتثبيت الصور بدقة...'}
             </h3>
-            <p className="text-xs text-slate-300">يتم إعداد الملف بدقة فائقة متوافقة مع شاشات الآيفون والأندرويد</p>
+            <p className="text-xs text-slate-300">يتم معالجة الصور يدوياً لتظهر بكامل وضوحها على الآيفون</p>
             {isVideoMnemonic && exportProgress > 0 && (
               <div className="w-full bg-slate-800 rounded-full h-3 overflow-hidden border border-slate-700">
                 <div
@@ -532,7 +599,7 @@ export default function App() {
                   صانع القوالب الذكي
                 </span>
               </div>
-              <p className="text-[10px] sm:text-xs text-slate-500 truncate">تثبيت دقيق للصور على أجهزة آبل والأندرويد</p>
+              <p className="text-[10px] sm:text-xs text-slate-500 truncate">تثبيت فوري للصور على الآيفون والأندرويد</p>
             </div>
           </div>
 
@@ -832,7 +899,7 @@ export default function App() {
 
             <hr className="border-slate-100" />
 
-            {/* 4. الربط الذهني (حل مشكلة الضغط مرتين نهائياً بمداخل منفصلة) */}
+            {/* 4. الربط الذهني (بمدخلين مستقلين) */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div>
@@ -881,7 +948,6 @@ export default function App() {
                         بدون
                       </button>
 
-                      {/* زر الصورة - يفتح ملفات الصور مباشرة من الضغطة الأولى */}
                       <button
                         type="button"
                         onClick={() => {
@@ -897,7 +963,6 @@ export default function App() {
                         🖼️ صورة
                       </button>
 
-                      {/* زر الفيديو - يفتح ملفات الفيديو مباشرة من الضغطة الأولى */}
                       <button
                         type="button"
                         onClick={() => {
@@ -914,7 +979,6 @@ export default function App() {
                       </button>
                     </div>
 
-                    {/* مدخل الصور المستقل */}
                     <input
                       ref={mnemonicImageInputRef}
                       type="file"
@@ -923,7 +987,6 @@ export default function App() {
                       onChange={(e) => handleFileUpload(e.target.files?.[0], setMnemonicMediaUrl)}
                     />
 
-                    {/* مدخل الفيديو المستقل */}
                     <input
                       ref={mnemonicVideoInputRef}
                       type="file"
