@@ -55,9 +55,10 @@ export default function App() {
   const [subject, setSubject] = useState('احياء');
   const [newSubjectInput, setNewSubjectInput] = useState('');
 
+  // القالب المختار
   const [selectedTemplate, setSelectedTemplate] = useState('cream');
 
-  // السؤال: نص أو صورة أو كلاهما
+  // السؤال: نص أو صورة
   const [questionText, setQuestionText] = useState('أي الهرمونات التالية يُنتج في الخصية؟');
   const [questionImage, setQuestionImage] = useState(null);
 
@@ -78,7 +79,7 @@ export default function App() {
   const [mnemonicMediaType, setMnemonicMediaType] = useState('video'); // 'none' | 'image' | 'video'
   const [mnemonicMediaUrl, setMnemonicMediaUrl] = useState(null);
 
-  // حالة التصدير
+  // حالة استخراج وتصدير الميديا
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
 
@@ -117,7 +118,7 @@ export default function App() {
     setOptions((prev) => prev.map((o) => (o.id === id ? { ...o, ...patch } : o)));
   };
 
-  // التحكم السريع بعدد الخيارات (4، 3، 2، 1، أو بدون)
+  // التحكم السريع بعدد الخيارات (4، 3، 2، 1، 0)
   const setQuickOptionCount = (count) => {
     setOptions((prev) =>
       prev.map((opt, idx) => ({ ...opt, enabled: idx < count }))
@@ -148,30 +149,115 @@ export default function App() {
     setMnemonicMediaType('none');
   };
 
+  // 6 قوالب بتصميمات وأشكال ومودات متنوعة تناسب التحصيلي والقدرات
   const themes = {
     cream: {
+      id: 'cream',
+      title: '1. عقدة الأصلي (الكريمي)',
+      desc: 'مطابق للصورة تماماً',
       bg: '#F8F5EC',
       waveTop: '#DE6E79',
       waveSub: '#F3C75F',
       cardBg: '#FCFBF7',
       border: '#9A4854',
       doodleColor: '#D8CFBE',
+      subjectBg: '#FCE052',
+      subjectColor: '#FFFFFF',
+      optionBadge: '#E5A5AE',
+      mnemonicBg: '#F3C6CB',
+      mnemonicBadge: '#E397A1',
+      textMain: '#2B1810',
+      waveType: 'wave',
     },
     blush: {
+      id: 'blush',
+      title: '2. عقدة الوردي الفاتح',
+      desc: 'نفس النسق بخلفية وردية ناعمة',
       bg: '#FDF3F4',
       waveTop: '#C94A58',
       waveSub: '#F2C94C',
       cardBg: '#FFFFFF',
       border: '#9A4854',
       doodleColor: '#EBCBCE',
+      subjectBg: '#F2C94C',
+      subjectColor: '#FFFFFF',
+      optionBadge: '#E5A5AE',
+      mnemonicBg: '#FCE7EA',
+      mnemonicBadge: '#E397A1',
+      textMain: '#2B1810',
+      waveType: 'wave',
     },
     sand: {
+      id: 'sand',
+      title: '3. عقدة الرملي الدافئ',
+      desc: 'نفس النسق بخلفية بيج كلاسيكية',
       bg: '#F4EFE6',
       waveTop: '#B83B4A',
       waveSub: '#E6B84F',
       cardBg: '#FFFDF9',
       border: '#8B3A46',
       doodleColor: '#CEC4B0',
+      subjectBg: '#E6B84F',
+      subjectColor: '#FFFFFF',
+      optionBadge: '#D49B86',
+      mnemonicBg: '#F0E2D6',
+      mnemonicBadge: '#BA684A',
+      textMain: '#2B1810',
+      waveType: 'wave',
+    },
+    navy: {
+      id: 'navy',
+      title: '4. التحصيلي الملكي (كحلي وسيان)',
+      desc: 'مود هندسي للفيزياء والرياضيات والتجميعات',
+      bg: '#F0F4F9',
+      waveTop: '#0F2744',
+      waveSub: '#0284C7',
+      cardBg: '#FFFFFF',
+      border: '#0F2744',
+      doodleColor: '#CBD5E1',
+      subjectBg: '#0284C7',
+      subjectColor: '#FFFFFF',
+      optionBadge: '#7DD3FC',
+      mnemonicBg: '#E0F2FE',
+      mnemonicBadge: '#0369A1',
+      textMain: '#0F172A',
+      waveType: 'modern',
+    },
+    emerald: {
+      id: 'emerald',
+      title: '5. المينت الأكاديمي (أخضر زمردي)',
+      desc: 'مود هادئ يركز على الأحياء والكيمياء',
+      bg: '#F0FDF4',
+      waveTop: '#064E3B',
+      waveSub: '#10B981',
+      cardBg: '#FFFFFF',
+      border: '#064E3B',
+      doodleColor: '#A7F3D0',
+      subjectBg: '#10B981',
+      subjectColor: '#FFFFFF',
+      optionBadge: '#6EE7B7',
+      mnemonicBg: '#D1FAE5',
+      mnemonicBadge: '#047857',
+      textMain: '#064E3B',
+      waveType: 'leaf',
+    },
+    violet: {
+      id: 'violet',
+      title: '6. البنفسجي الإبداعي (ذهبي وموف)',
+      desc: 'ثيم فخم ذو طاقة عالية للقدرات والشامل',
+      bg: '#F6F3FF',
+      waveTop: '#4C1D95',
+      waveSub: '#F59E0B',
+      cardBg: '#FFFFFF',
+      border: '#4C1D95',
+      doodleColor: '#DDD6FE',
+      subjectBg: '#7C3AED',
+      subjectColor: '#FFFFFF',
+      optionBadge: '#C4B5FD',
+      mnemonicBg: '#EDE9FE',
+      mnemonicBadge: '#6D28D9',
+      textMain: '#2E1065',
+      waveType: 'arch',
     },
   };
 
@@ -187,7 +273,7 @@ export default function App() {
   const hasMnemonicMedia = enableMnemonic && mnemonicMediaType !== 'none' && mnemonicMediaUrl;
   const isVideoMnemonic = enableMnemonic && mnemonicMediaType === 'video' && mnemonicMediaUrl;
 
-  // استخراج القالب كصورة عادية (PNG بدقة 2.5x)
+  // استخراج كصورة PNG عالية الدقة
   const handleExtractImage = async () => {
     if (!templateCardRef.current) return;
     setIsExporting(true);
@@ -197,7 +283,7 @@ export default function App() {
         pixelRatio: 2.5,
       });
       const link = document.createElement('a');
-      link.download = `سؤال_عقدة_${subject || 'قدرات'}_${Date.now()}.png`;
+      link.download = `سؤال_عقدة_${subject || 'تحصيلي'}_${Date.now()}.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
@@ -280,7 +366,7 @@ export default function App() {
         const a = document.createElement('a');
         a.href = downloadUrl;
         const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
-        a.download = `سؤال_عقدة_مدمج_${subject || 'عقدة'}_${Date.now()}.${ext}`;
+        a.download = `سؤال_عقدة_مدمج_${subject || 'تحصيلي'}_${Date.now()}.${ext}`;
         a.click();
         setIsExporting(false);
         setExportProgress(0);
@@ -339,7 +425,7 @@ export default function App() {
             <h3 className="text-base font-black">
               {isVideoMnemonic ? 'جاري استخراج القالب والمقطع معاً...' : 'جاري استخراج الصورة...'}
             </h3>
-            <p className="text-xs text-slate-300">يتم إعداد الملف بأعلى جودة جاهز للنشر</p>
+            <p className="text-xs text-slate-300">يتم إعداد الملف بأعلى جودة جاهز للنشر مباشرة</p>
             {isVideoMnemonic && exportProgress > 0 && (
               <div className="w-full bg-slate-800 rounded-full h-3 overflow-hidden border border-slate-700">
                 <div
@@ -380,10 +466,10 @@ export default function App() {
               <div className="flex items-center gap-2">
                 <h1 className="text-lg font-black text-slate-900">منصة أكاديمية عقدة</h1>
                 <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-[#D65261]/10 text-[#A83846]">
-                  صانع القوالب الذكي
+                  صانع قوالب التحصيلي والقدرات
                 </span>
               </div>
-              <p className="text-xs text-slate-500">يدعم الأسئلة المصورة والربط بالفيديو أو الصور</p>
+              <p className="text-xs text-slate-500">6 ثيمات وأشكال متنوعة • استخراج مدمج فوري</p>
             </div>
           </div>
 
@@ -398,7 +484,7 @@ export default function App() {
               </button>
             )}
 
-            {/* زر الـ Extract الرئيسي الذكي */}
+            {/* زر الـ Extract الذكي */}
             {isVideoMnemonic ? (
               <button
                 type="button"
@@ -435,7 +521,7 @@ export default function App() {
           <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
             <div>
               <h2 className="text-sm font-black text-slate-900">تعبئة بيانات السؤال</h2>
-              <p className="text-[11px] text-slate-500">يتكيف تلقائياً مع كافة الأشكال</p>
+              <p className="text-[11px] text-slate-500">يتكيف تلقائياً مع كافة الخيارات والربط</p>
             </div>
             <button
               type="button"
@@ -541,12 +627,12 @@ export default function App() {
 
             <hr className="border-slate-100" />
 
-            {/* 3. الخيارات الديناميكية (تدعم خيار واحد فقط) */}
+            {/* 3. الخيارات الديناميكية (من 4 إلى 1 خيار) */}
             <div className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <label className="text-xs font-black text-slate-800 block">3. الخيارات</label>
-                  <span className="text-[11px] text-slate-500">اختر عدد الخيارات من 4 وحتى خيار واحد فقط</span>
+                  <span className="text-[11px] text-slate-500">اختر عدد الخيارات من 4 وحتى خيار واحد</span>
                 </div>
 
                 <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
@@ -759,7 +845,7 @@ export default function App() {
                     {mnemonicMediaUrl && (
                       <div className="flex items-center justify-between bg-white p-2 rounded-xl border border-rose-200">
                         <span className="text-xs font-bold text-slate-700">
-                          {mnemonicMediaType === 'video' ? '🎬 تم إرفاق مقطع الفيديو' : '🖼️ تم إرفاق صورة الربط'}
+                          {mnemonicMediaType === 'video' ? '🎬 تم إرفاق مقطع الفيديو بنجاح' : '🖼️ تم إرفاق صورة الربط بنجاح'}
                         </span>
                         <button
                           type="button"
@@ -777,20 +863,39 @@ export default function App() {
           </div>
         </section>
 
-        {/* العمود الأيسر: المعاينة الحية */}
+        {/* العمود الأيسر: اختيار القوالب الـ 6 والمعاينة الحية */}
         <section className="lg:col-span-7 space-y-4">
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex items-center justify-between">
-            <span className="text-xs font-black text-slate-800">معاينة القالب الحي:</span>
-            {isVideoMnemonic ? (
-              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                جاهز لاستخراج الفيديو المدمج بالكامل
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-slate-800">اختر قالب الخلفية والثيم (6 قوالب لمود التحصيلي والقدرات):</span>
+              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                {t.title.split('.')[1] || t.title}
               </span>
-            ) : (
-              <span className="text-[11px] font-bold text-slate-600 bg-slate-50 px-2.5 py-1 rounded-full border border-slate-200">
-                جاهز لاستخراج الصورة (PNG)
-              </span>
-            )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+              {Object.values(themes).map((tpl) => (
+                <button
+                  key={tpl.id}
+                  type="button"
+                  onClick={() => setSelectedTemplate(tpl.id)}
+                  className={`p-3 rounded-xl border text-right transition-all cursor-pointer ${
+                    selectedTemplate === tpl.id
+                      ? 'bg-[#FFF5F6] border-[#D65261] shadow-sm ring-2 ring-[#D65261]/20'
+                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-slate-900">{tpl.title}</span>
+                    <span
+                      className="w-3.5 h-3.5 rounded-full border border-black/10 shrink-0"
+                      style={{ backgroundColor: tpl.waveTop }}
+                    />
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-1">{tpl.desc}</div>
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
@@ -806,10 +911,10 @@ export default function App() {
                   borderRadius: '24px',
                   padding: `22px 30px ${hasMnemonicMedia ? '0px' : '32px'}`,
                   boxSizing: 'border-box',
-                  border: '1.5px solid #E5DEC9',
+                  border: `1.5px solid ${t.border}22`,
                 }}
               >
-                {/* النقوش العلمية في الخلفية */}
+                {/* النقوش العلمية في الخلفية بتناسق مع كل ثيم */}
                 <svg
                   viewBox="0 0 800 750"
                   style={{
@@ -838,29 +943,32 @@ export default function App() {
                   </g>
                 </svg>
 
-                {/* الموجة العلوية */}
-                <svg
-                  viewBox="0 0 800 135"
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '110px',
-                    pointerEvents: 'none',
-                  }}
-                  preserveAspectRatio="none"
-                >
-                  <path
-                    d="M 0,32 Q 210,-15 470,22 Q 650,120 800,88 L 800,0 L 0,0 Z"
-                    fill={t.waveSub}
-                    opacity="0.65"
-                  />
-                  <path
-                    d="M 0,24 Q 230,-18 480,15 Q 660,110 800,82 L 800,58 Q 660,85 490,0 L 0,0 Z"
-                    fill={t.waveTop}
-                  />
-                </svg>
+                {/* الموجة العلوية المتنوعة حسب كل قالب */}
+                {t.waveType === 'modern' ? (
+                  // شكل هندسي تقني للتحصيلي الملكي (كحلي وسيان)
+                  <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '110px', pointerEvents: 'none' }} preserveAspectRatio="none">
+                    <path d="M 0,0 L 800,0 L 800,60 L 500,105 L 200,45 L 0,85 Z" fill={t.waveSub} opacity="0.65" />
+                    <path d="M 0,0 L 800,0 L 800,45 L 480,90 L 180,30 L 0,65 Z" fill={t.waveTop} />
+                  </svg>
+                ) : t.waveType === 'leaf' ? (
+                  // انحناءات حيوية انسيابية للمينت الأكاديمي (أحياء وكيمياء)
+                  <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '110px', pointerEvents: 'none' }} preserveAspectRatio="none">
+                    <path d="M 0,0 L 800,0 L 800,75 Q 600,125 400,60 Q 200,5 0,80 Z" fill={t.waveSub} opacity="0.65" />
+                    <path d="M 0,0 L 800,0 L 800,55 Q 580,105 380,45 Q 180,0 0,60 Z" fill={t.waveTop} />
+                  </svg>
+                ) : t.waveType === 'arch' ? (
+                  // أقواس فخمة ومزدوجة للبنفسجي الإبداعي
+                  <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '110px', pointerEvents: 'none' }} preserveAspectRatio="none">
+                    <path d="M 0,0 L 800,0 L 800,85 Q 550,-10 320,85 Q 150,130 0,60 Z" fill={t.waveSub} opacity="0.75" />
+                    <path d="M 0,0 L 800,0 L 800,65 Q 530,-25 300,70 Q 140,110 0,45 Z" fill={t.waveTop} />
+                  </svg>
+                ) : (
+                  // الموجة الكلاسيكية الأصلية لعقدة
+                  <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '110px', pointerEvents: 'none' }} preserveAspectRatio="none">
+                    <path d="M 0,32 Q 210,-15 470,22 Q 650,120 800,88 L 800,0 L 0,0 Z" fill={t.waveSub} opacity="0.65" />
+                    <path d="M 0,24 Q 230,-18 480,15 Q 660,110 800,82 L 800,58 Q 660,85 490,0 L 0,0 Z" fill={t.waveTop} />
+                  </svg>
+                )}
 
                 {/* الشعار */}
                 <div style={{ position: 'relative', zIndex: 2, display: 'flex', marginTop: '4px' }}>
@@ -871,22 +979,22 @@ export default function App() {
                   )}
                 </div>
 
-                {/* دائرة اسم المادة */}
+                {/* دائرة اسم المادة الملونة حسب القالب */}
                 <div style={{ position: 'relative', zIndex: 3, display: 'flex', justifyContent: 'center', marginTop: '-30px', marginBottom: '-40px' }}>
                   <div
                     style={{
                       width: '90px',
                       height: '90px',
                       borderRadius: '50%',
-                      backgroundColor: '#FCE052',
+                      backgroundColor: t.subjectBg,
+                      color: t.subjectColor,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontWeight: 800,
                       fontSize: '30px',
-                      color: '#FFFFFF',
-                      textShadow: '0 1px 2px rgba(0,0,0,0.12)',
-                      boxShadow: '0 4px 10px rgba(0,0,0,0.06)',
+                      textShadow: '0 1px 2px rgba(0,0,0,0.15)',
+                      boxShadow: '0 4px 10px rgba(0,0,0,0.08)',
                     }}
                   >
                     {subject || 'احياء'}
@@ -911,7 +1019,7 @@ export default function App() {
                       textAlign: 'center',
                       fontWeight: 800,
                       fontSize: '23px',
-                      color: '#2B1810',
+                      color: t.textMain,
                       lineHeight: 1.4,
                     }}
                   >
@@ -921,7 +1029,7 @@ export default function App() {
                         <img
                           src={questionImage}
                           alt="صورة السؤال"
-                          style={{ maxHeight: '185px', borderRadius: '12px', objectFit: 'contain', border: '1px solid #EAE3D2' }}
+                          style={{ maxHeight: '185px', borderRadius: '12px', objectFit: 'contain', border: `1px solid ${t.border}33` }}
                         />
                       </div>
                     )}
@@ -961,7 +1069,7 @@ export default function App() {
                                 width: '26px',
                                 height: '26px',
                                 borderRadius: '50%',
-                                backgroundColor: isCorrect ? '#90C4A5' : '#E5A5AE',
+                                backgroundColor: isCorrect ? '#10B981' : t.optionBadge,
                                 color: '#ffffff',
                                 display: 'inline-flex',
                                 alignItems: 'center',
@@ -979,7 +1087,7 @@ export default function App() {
                                 textAlign: 'center',
                                 fontWeight: 800,
                                 fontSize: '18px',
-                                color: '#1E1815',
+                                color: t.textMain,
                               }}
                             >
                               {opt.text && <div>{opt.text}</div>}
@@ -1003,12 +1111,12 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* شريط جملة الربط الذهني */}
+                  {/* شريط جملة الربط الذهني المتناسق مع كل ثيم */}
                   {hasMnemonicText && (
                     <div
                       style={{
                         marginTop: '14px',
-                        backgroundColor: '#F3C6CB',
+                        backgroundColor: t.mnemonicBg,
                         borderRadius: '12px',
                         padding: '7px 12px',
                         display: 'flex',
@@ -1018,7 +1126,7 @@ export default function App() {
                     >
                       <span
                         style={{
-                          backgroundColor: '#E397A1',
+                          backgroundColor: t.mnemonicBadge,
                           color: '#ffffff',
                           padding: '2px 10px',
                           borderRadius: '999px',
@@ -1035,7 +1143,7 @@ export default function App() {
                           textAlign: 'center',
                           fontWeight: 800,
                           fontSize: '17px',
-                          color: '#231815',
+                          color: t.textMain,
                         }}
                       >
                         {mnemonicText}
@@ -1044,7 +1152,7 @@ export default function App() {
                   )}
                 </div>
 
-                {/* الميديا أسفل الصندوق (سواء كانت فيديو أو صورة واضحة جداً ومطابقة للتصميم) */}
+                {/* الميديا أسفل الصندوق (سواء كانت مقطع فيديو أو صورة واضحة جداً) */}
                 {hasMnemonicMedia && (
                   <div
                     style={{
