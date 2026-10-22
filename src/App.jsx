@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { toPng } from 'html-to-image';
 
 // الشعار المطابق للصورة بـ SVG نظيف ومستقر
@@ -76,17 +76,25 @@ export default function App() {
   // الربط الذهني
   const [enableMnemonic, setEnableMnemonic] = useState(true);
   const [mnemonicText, setMnemonicText] = useState('هو هرمون ذكري ف أخوك لما يشوفكم يقول تسترو (تستيستيرون)');
-  const [mnemonicMediaType, setMnemonicMediaType] = useState('video'); // 'none' | 'image' | 'video'
+  const [mnemonicMediaType, setMnemonicMediaType] = useState('video');
   const [mnemonicMediaUrl, setMnemonicMediaUrl] = useState(null);
+
+  // تبويب الجوال (إدخال أو معاينة)
+  const [mobileTab, setMobileTab] = useState('edit');
 
   // حالة التصدير
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
 
+  // نظام تصغير المعاينة الذكي للجوال
+  const previewWrapperRef = useRef(null);
+  const templateCardRef = useRef(null);
+  const [canvasScale, setCanvasScale] = useState(1);
+  const [measuredCardHeight, setMeasuredCardHeight] = useState(0);
+
   const logoRef = useRef(null);
   const qImgRef = useRef(null);
   const mnemonicMediaRef = useRef(null);
-  const templateCardRef = useRef(null);
   const videoPlayerRef = useRef(null);
 
   const optARef = useRef(null);
@@ -94,6 +102,32 @@ export default function App() {
   const optCRef = useRef(null);
   const optDRef = useRef(null);
   const optImgRefs = { A: optARef, B: optBRef, C: optCRef, D: optDRef };
+
+  // حساب الـ Scale بدقة على الجوال لضمان تطابق الأبعاد
+  useEffect(() => {
+    const handleResize = () => {
+      if (!previewWrapperRef.current || !templateCardRef.current) return;
+      const containerWidth = previewWrapperRef.current.offsetWidth;
+      const baseWidth = 540; // العرض الهندسي الموحد للقالب
+      if (containerWidth < baseWidth) {
+        setCanvasScale(containerWidth / baseWidth);
+      } else {
+        setCanvasScale(1);
+      }
+      setMeasuredCardHeight(templateCardRef.current.offsetHeight);
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    const observer = new ResizeObserver(handleResize);
+    if (templateCardRef.current) observer.observe(templateCardRef.current);
+    if (previewWrapperRef.current) observer.observe(previewWrapperRef.current);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      observer.disconnect();
+    };
+  }, [options, questionText, questionImage, mnemonicText, mnemonicMediaUrl, mobileTab]);
 
   const handleFileUpload = (file, callback) => {
     if (!file) return;
@@ -148,12 +182,11 @@ export default function App() {
     setMnemonicMediaType('none');
   };
 
-  // ثيمات التحصيلي الـ 6 المتنوعة
   const themes = {
     cream: {
       id: 'cream',
       title: '1. عقدة الأصلي (الكريمي)',
-      desc: 'مطابق للتصميم الكلاسيكي',
+      desc: 'مطابق للصورة الكلاسيكية',
       bg: '#F8F5EC',
       waveTop: '#DE6E79',
       waveSub: '#F3C75F',
@@ -272,14 +305,14 @@ export default function App() {
   const hasMnemonicMedia = enableMnemonic && mnemonicMediaType !== 'none' && mnemonicMediaUrl;
   const isVideoMnemonic = enableMnemonic && mnemonicMediaType === 'video' && mnemonicMediaUrl;
 
-  // استخراج كصورة PNG عالية الدقة
+  // استخراج الصورة بجودة موحدة 100% للجوال واللابتوب
   const handleExtractImage = async () => {
     if (!templateCardRef.current) return;
     setIsExporting(true);
     try {
       const dataUrl = await toPng(templateCardRef.current, {
         cacheBust: true,
-        pixelRatio: 2.5,
+        pixelRatio: 2,
       });
       const link = document.createElement('a');
       link.download = `سؤال_عقدة_${subject || 'تحصيلي'}_${Date.now()}.png`;
@@ -293,7 +326,7 @@ export default function App() {
     }
   };
 
-  // استخراج القالب المدمج مع الفيديو
+  // استخراج الفيديو بأبعاد ونسبة موحدة تماماً
   const handleExtractFullVideo = async () => {
     const video = videoPlayerRef.current;
     const cardEl = templateCardRef.current;
@@ -374,8 +407,14 @@ export default function App() {
       };
 
       video.currentTime = 0;
-      video.muted = false;
-      await video.play();
+      try {
+        video.muted = false;
+        await video.play();
+      } catch {
+        video.muted = true;
+        await video.play();
+      }
+
       mediaRecorder.start();
 
       const totalDuration = video.duration || 5;
@@ -424,7 +463,7 @@ export default function App() {
             <h3 className="text-base font-black">
               {isVideoMnemonic ? 'جاري استخراج القالب والمقطع معاً...' : 'جاري استخراج الصورة...'}
             </h3>
-            <p className="text-xs text-slate-300">يتم إعداد الملف بأعلى جودة جاهز للنشر</p>
+            <p className="text-xs text-slate-300">يتم إعداد ملف موحد عالي الدقة</p>
             {isVideoMnemonic && exportProgress > 0 && (
               <div className="w-full bg-slate-800 rounded-full h-3 overflow-hidden border border-slate-700">
                 <div
@@ -438,7 +477,7 @@ export default function App() {
         </div>
       )}
 
-      {/* الشريط العلوي متجاوب بالكامل للجوال واللابتوب */}
+      {/* الشريط العلوي */}
       <header className="sticky top-0 z-30 bg-white border-b border-slate-200 px-3 sm:px-6 py-2.5 shadow-sm">
         <div className="max-w-[1440px] mx-auto flex items-center justify-between gap-2 sm:gap-4">
           <div className="flex items-center gap-2 sm:gap-3.5 min-w-0">
@@ -449,7 +488,7 @@ export default function App() {
               className="rounded-2xl p-1 bg-[#FFFDF9] border border-slate-200 hover:border-[#D65261] transition-all cursor-pointer flex items-center justify-center shrink-0"
             >
               {customLogo ? (
-                <img src={customLogo} alt="شعار عقدة" className="w-10 h-10 sm:w-13 sm:h-13 object-contain" />
+                <img src={customLogo} alt="شعار عقدة" className="w-10 h-10 sm:w-12 sm:h-12 object-contain" />
               ) : (
                 <UqdahLogo size={42} />
               )}
@@ -463,27 +502,16 @@ export default function App() {
             />
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <h1 className="text-sm sm:text-lg font-black text-slate-900 truncate">أكاديمية عقدة</h1>
-                <span className="text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#D65261]/10 text-[#A83846] hidden xs:inline-block">
-                  التحصيلي والقدرات
+                <h1 className="text-sm sm:text-base font-black text-slate-900 truncate">أكاديمية عقدة</h1>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#D65261]/10 text-[#A83846]">
+                  صانع القوالب الذكي
                 </span>
               </div>
-              <p className="text-[10px] sm:text-xs text-slate-500 truncate">أبعاد موحدة للجوال واللابتوب</p>
+              <p className="text-[10px] sm:text-xs text-slate-500 truncate">أبعاد ونسب موحدة للجوال والكمبيوتر</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {customLogo && (
-              <button
-                type="button"
-                onClick={() => setCustomLogo(null)}
-                className="text-[11px] font-bold text-rose-600 bg-rose-50 px-2.5 py-1.5 rounded-xl cursor-pointer hidden md:inline-block"
-              >
-                استعادة الشعار
-              </button>
-            )}
-
-            {/* زر الـ Extract الذكي في الهيدر */}
             {isVideoMnemonic ? (
               <button
                 type="button"
@@ -495,7 +523,7 @@ export default function App() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
                 <span className="hidden sm:inline">Extract: استخراج القالب مع الفيديو 🎬</span>
-                <span className="sm:hidden">استخراج فيديو 🎬</span>
+                <span className="sm:hidden">استخراج 🎬</span>
               </button>
             ) : (
               <button
@@ -508,28 +536,52 @@ export default function App() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
                 <span className="hidden sm:inline">Extract: استخراج القالب (PNG) 🖼️</span>
-                <span className="sm:hidden">استخراج PNG 🖼️</span>
+                <span className="sm:hidden">استخراج 🖼️</span>
               </button>
             )}
           </div>
         </div>
       </header>
 
+      {/* شريط تبديل التبويبات للجوال فقط لسهولة التحرير والمعاينة */}
+      <div className="lg:hidden flex items-center bg-slate-200/80 p-1 rounded-2xl mx-3 mt-3">
+        <button
+          type="button"
+          onClick={() => setMobileTab('edit')}
+          className={`flex-1 py-2 text-xs font-black rounded-xl transition-all ${
+            mobileTab === 'edit' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
+          }`}
+        >
+          ✏️ تعديل السؤال والبيانات
+        </button>
+        <button
+          type="button"
+          onClick={() => setMobileTab('preview')}
+          className={`flex-1 py-2 text-xs font-black rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+            mobileTab === 'preview' ? 'bg-[#D65261] text-white shadow-sm' : 'text-slate-600'
+          }`}
+        >
+          <span>👁️ المعاينة والاستخراج</span>
+          {isVideoMnemonic && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>}
+        </button>
+      </div>
+
       {/* المحتوى الرئيسي */}
       <main className="flex-1 max-w-[1440px] w-full mx-auto p-3 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
         {/* العمود الأيمن: إدخال البيانات */}
-        <section className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <section
+          className={`lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden ${
+            mobileTab === 'edit' ? 'block' : 'hidden lg:block'
+          }`}
+        >
           <div className="px-4 sm:px-5 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-            <div>
-              <h2 className="text-sm font-black text-slate-900">بيانات السؤال</h2>
-              <p className="text-[11px] text-slate-500">معدّل تلقائياً ليناسب شاشة الهاتف</p>
-            </div>
+            <h2 className="text-sm font-black text-slate-900">بيانات السؤال والخيارات</h2>
             <button
               type="button"
               onClick={resetQuestionFields}
               className="text-xs font-bold text-slate-600 hover:text-rose-600 bg-white px-2.5 py-1 rounded-xl border border-slate-200 cursor-pointer"
             >
-              تفريغ
+              تفريغ لسؤال جديد
             </button>
           </div>
 
@@ -566,7 +618,7 @@ export default function App() {
                   value={newSubjectInput}
                   onChange={(e) => setNewSubjectInput(e.target.value)}
                   placeholder="أو اكتب اسم مادة أخرى..."
-                  className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs sm:text-xs focus:outline-none focus:bg-white"
+                  className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:bg-white"
                 />
                 <button
                   type="submit"
@@ -589,7 +641,7 @@ export default function App() {
                     onClick={() => qImgRef.current?.click()}
                     className="text-xs font-bold px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer"
                   >
-                    {questionImage ? 'تغيير الصورة' : '+ إرفاق صورة للسؤال'}
+                    {questionImage ? 'تغيير صورة السؤال' : '+ إرفاق صورة للسؤال'}
                   </button>
                   {questionImage && (
                     <button
@@ -633,7 +685,7 @@ export default function App() {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <label className="text-xs font-black text-slate-800 block">3. الخيارات</label>
-                  <span className="text-[11px] text-slate-500">اختر عدد الخيارات المتاحة:</span>
+                  <span className="text-[11px] text-slate-500">اختر عدد الخيارات:</span>
                 </div>
 
                 <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
@@ -760,7 +812,7 @@ export default function App() {
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-xs font-black text-slate-800 block">4. الربط الذهني</span>
-                  <span className="text-[11px] text-slate-500">جملة ربط ومقطع/صورة أسفل الكرت</span>
+                  <span className="text-[11px] text-slate-500">جملة ربط ومقطع أو صورة</span>
                 </div>
                 <button
                   type="button"
@@ -844,7 +896,7 @@ export default function App() {
                     {mnemonicMediaUrl && (
                       <div className="flex items-center justify-between bg-white p-2 rounded-xl border border-rose-200">
                         <span className="text-xs font-bold text-slate-700 truncate">
-                          {mnemonicMediaType === 'video' ? '🎬 تم اختيار الفيديو' : '🖼️ تم اختيار الصورة'}
+                          {mnemonicMediaType === 'video' ? '🎬 تم إرفاق مقطع الفيديو' : '🖼️ تم إرفاق صورة الربط'}
                         </span>
                         <button
                           type="button"
@@ -859,15 +911,30 @@ export default function App() {
                 </div>
               )}
             </div>
+
+            {/* زر انتقال سريع للمعاينة على الجوال */}
+            <div className="lg:hidden pt-2">
+              <button
+                type="button"
+                onClick={() => setMobileTab('preview')}
+                className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-xs font-black flex items-center justify-center gap-1.5 shadow-sm"
+              >
+                <span>الانتقال للمعاينة واستخراج القالب ←</span>
+              </button>
+            </div>
           </div>
         </section>
 
-        {/* العمود الأيسر: المعاينة الحية واستخراج القالب */}
-        <section className="lg:col-span-7 space-y-4">
-          {/* اختيار القوالب */}
+        {/* العمود الأيسر: المعاينة الحية */}
+        <section
+          className={`lg:col-span-7 space-y-4 ${
+            mobileTab === 'preview' ? 'block' : 'hidden lg:block'
+          }`}
+        >
+          {/* اختيار الثيمات الـ 6 */}
           <div className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-4 shadow-sm space-y-2.5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-slate-800">اختر ثيم القالب:</span>
+              <span className="text-xs font-black text-slate-800">اختر قالب الثيم:</span>
               <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
                 {t.title.split('.')[1] || t.title}
               </span>
@@ -898,310 +965,324 @@ export default function App() {
             </div>
           </div>
 
-          {/* حاوية المعاينة مع تناسق كامل للجوال واللابتوب */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-2 sm:p-5 shadow-sm">
-            <div className="w-full max-w-[580px] mx-auto">
+          {/* حاوية المعاينة مع تثبيت الأبعاد هندسياً */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-5 shadow-sm">
+            {/* الحاوية المتكيفة - تحافظ على أبعاد القالب والمقطع بدقة 540px */}
+            <div
+              ref={previewWrapperRef}
+              className="w-full flex justify-center items-start overflow-hidden"
+              style={{
+                height: canvasScale < 1 && measuredCardHeight > 0 ? `${measuredCardHeight * canvasScale}px` : 'auto',
+              }}
+            >
+              {/* عنصر القالب الثابت هندسياً ليحافظ على نفس أبعاد المقطع والنصوص على أي جهاز */}
               <div
-                ref={templateCardRef}
                 style={{
-                  fontFamily: "'Tajawal', sans-serif",
-                  direction: 'rtl',
-                  backgroundColor: t.bg,
-                  position: 'relative',
-                  overflow: 'hidden',
-                  borderRadius: '24px',
-                  // بادينج متجاوب بدقة ليعطي نفس الشكل تماماً
-                  padding: hasMnemonicMedia
-                    ? 'clamp(14px, 3.5vw, 22px) clamp(16px, 4.5vw, 30px) 0px'
-                    : 'clamp(14px, 3.5vw, 22px) clamp(16px, 4.5vw, 30px) clamp(20px, 4vw, 32px)',
-                  boxSizing: 'border-box',
-                  border: `1.5px solid ${t.border}22`,
+                  width: '540px',
+                  minWidth: '540px',
+                  transform: `scale(${canvasScale})`,
+                  transformOrigin: 'top center',
                 }}
               >
-                {/* النقوش العلمية في الخلفية */}
-                <svg
-                  viewBox="0 0 800 750"
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    width: '100%',
-                    height: '100%',
-                    pointerEvents: 'none',
-                    opacity: 0.35,
-                  }}
-                  preserveAspectRatio="xMidYMid slice"
-                >
-                  <g fill={t.doodleColor} stroke={t.doodleColor} fontFamily="serif" fontSize="22">
-                    <text x="110" y="65" stroke="none">= ln x</text>
-                    <text x="450" y="75" stroke="none">.. = tan</text>
-                    <text x="720" y="210" stroke="none">2R</text>
-                    <text x="610" y="520" stroke="none" fontSize="28">tan</text>
-                    <text x="640" y="560" stroke="none">E = mc²</text>
-                    <text x="690" y="625" stroke="none">sin</text>
-                    <text x="690" y="655" stroke="none">cos</text>
-                    <text x="15" y="370" stroke="none">in</text>
-                    <text x="5" y="405" stroke="none">cos</text>
-                    <text x="150" y="595" stroke="none" fontSize="28">%</text>
-                    <polygon points="240,35 290,90 215,90" fill="none" strokeWidth="2" />
-                    <polygon points="680,600 745,675 655,675" fill="none" strokeWidth="2" />
-                  </g>
-                </svg>
-
-                {/* الموجة العلوية حسب كل ثيم */}
-                {t.waveType === 'modern' ? (
-                  <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '105px', pointerEvents: 'none' }} preserveAspectRatio="none">
-                    <path d="M 0,0 L 800,0 L 800,60 L 500,105 L 200,45 L 0,85 Z" fill={t.waveSub} opacity="0.65" />
-                    <path d="M 0,0 L 800,0 L 800,45 L 480,90 L 180,30 L 0,65 Z" fill={t.waveTop} />
-                  </svg>
-                ) : t.waveType === 'leaf' ? (
-                  <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '105px', pointerEvents: 'none' }} preserveAspectRatio="none">
-                    <path d="M 0,0 L 800,0 L 800,75 Q 600,125 400,60 Q 200,5 0,80 Z" fill={t.waveSub} opacity="0.65" />
-                    <path d="M 0,0 L 800,0 L 800,55 Q 580,105 380,45 Q 180,0 0,60 Z" fill={t.waveTop} />
-                  </svg>
-                ) : t.waveType === 'arch' ? (
-                  <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '105px', pointerEvents: 'none' }} preserveAspectRatio="none">
-                    <path d="M 0,0 L 800,0 L 800,85 Q 550,-10 320,85 Q 150,130 0,60 Z" fill={t.waveSub} opacity="0.75" />
-                    <path d="M 0,0 L 800,0 L 800,65 Q 530,-25 300,70 Q 140,110 0,45 Z" fill={t.waveTop} />
-                  </svg>
-                ) : (
-                  <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '105px', pointerEvents: 'none' }} preserveAspectRatio="none">
-                    <path d="M 0,32 Q 210,-15 470,22 Q 650,120 800,88 L 800,0 L 0,0 Z" fill={t.waveSub} opacity="0.65" />
-                    <path d="M 0,24 Q 230,-18 480,15 Q 660,110 800,82 L 800,58 Q 660,85 490,0 L 0,0 Z" fill={t.waveTop} />
-                  </svg>
-                )}
-
-                {/* الشعار */}
-                <div style={{ position: 'relative', zIndex: 2, display: 'flex', marginTop: '4px' }}>
-                  {customLogo ? (
-                    <img src={customLogo} alt="أكاديمية عقدة" style={{ width: 'clamp(65px, 15vw, 85px)', height: 'clamp(65px, 15vw, 85px)', objectFit: 'contain' }} />
-                  ) : (
-                    <UqdahLogo size={75} />
-                  )}
-                </div>
-
-                {/* دائرة اسم المادة */}
-                <div style={{ position: 'relative', zIndex: 3, display: 'flex', justifyContent: 'center', marginTop: '-30px', marginBottom: '-38px' }}>
-                  <div
-                    style={{
-                      width: 'clamp(72px, 18vw, 88px)',
-                      height: 'clamp(72px, 18vw, 88px)',
-                      borderRadius: '50%',
-                      backgroundColor: t.subjectBg,
-                      color: t.subjectColor,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontWeight: 800,
-                      fontSize: 'clamp(22px, 5.5vw, 29px)',
-                      textShadow: '0 1px 2px rgba(0,0,0,0.15)',
-                      boxShadow: '0 4px 10px rgba(0,0,0,0.08)',
-                    }}
-                  >
-                    {subject || 'احياء'}
-                  </div>
-                </div>
-
-                {/* الصندوق الأبيض للأسئلة والخيارات والربط */}
                 <div
+                  ref={templateCardRef}
                   style={{
+                    width: '540px',
+                    fontFamily: "'Tajawal', sans-serif",
+                    direction: 'rtl',
+                    backgroundColor: t.bg,
                     position: 'relative',
-                    zIndex: 2,
-                    backgroundColor: t.cardBg,
-                    border: `1.8px solid ${t.border}`,
+                    overflow: 'hidden',
                     borderRadius: '24px',
-                    padding: 'clamp(36px, 8vw, 42px) clamp(14px, 4vw, 24px) clamp(14px, 3vw, 18px)',
+                    padding: hasMnemonicMedia ? '20px 28px 0px' : '20px 28px 28px',
                     boxSizing: 'border-box',
+                    border: `1.5px solid ${t.border}22`,
                   }}
                 >
-                  {/* نص وصورة السؤال */}
-                  <div
+                  {/* النقوش العلمية في الخلفية */}
+                  <svg
+                    viewBox="0 0 800 750"
                     style={{
-                      textAlign: 'center',
-                      fontWeight: 800,
-                      fontSize: 'clamp(18px, 4.2vw, 23px)',
-                      color: t.textMain,
-                      lineHeight: 1.4,
+                      position: 'absolute',
+                      inset: 0,
+                      width: '100%',
+                      height: '100%',
+                      pointerEvents: 'none',
+                      opacity: 0.35,
                     }}
+                    preserveAspectRatio="xMidYMid slice"
                   >
-                    {questionText && <div>{questionText}</div>}
-                    {questionImage && (
-                      <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'center' }}>
-                        <img
-                          src={questionImage}
-                          alt="صورة السؤال"
-                          style={{ maxHeight: '180px', maxWidth: '100%', borderRadius: '12px', objectFit: 'contain', border: `1px solid ${t.border}33` }}
-                        />
-                      </div>
+                    <g fill={t.doodleColor} stroke={t.doodleColor} fontFamily="serif" fontSize="22">
+                      <text x="110" y="65" stroke="none">= ln x</text>
+                      <text x="450" y="75" stroke="none">.. = tan</text>
+                      <text x="720" y="210" stroke="none">2R</text>
+                      <text x="610" y="520" stroke="none" fontSize="28">tan</text>
+                      <text x="640" y="560" stroke="none">E = mc²</text>
+                      <text x="690" y="625" stroke="none">sin</text>
+                      <text x="690" y="655" stroke="none">cos</text>
+                      <text x="15" y="370" stroke="none">in</text>
+                      <text x="5" y="405" stroke="none">cos</text>
+                      <text x="150" y="595" stroke="none" fontSize="28">%</text>
+                      <polygon points="240,35 290,90 215,90" fill="none" strokeWidth="2" />
+                      <polygon points="680,600 745,675 655,675" fill="none" strokeWidth="2" />
+                    </g>
+                  </svg>
+
+                  {/* الموجة العلوية المتنوعة */}
+                  {t.waveType === 'modern' ? (
+                    <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '110px', pointerEvents: 'none' }} preserveAspectRatio="none">
+                      <path d="M 0,0 L 800,0 L 800,60 L 500,105 L 200,45 L 0,85 Z" fill={t.waveSub} opacity="0.65" />
+                      <path d="M 0,0 L 800,0 L 800,45 L 480,90 L 180,30 L 0,65 Z" fill={t.waveTop} />
+                    </svg>
+                  ) : t.waveType === 'leaf' ? (
+                    <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '110px', pointerEvents: 'none' }} preserveAspectRatio="none">
+                      <path d="M 0,0 L 800,0 L 800,75 Q 600,125 400,60 Q 200,5 0,80 Z" fill={t.waveSub} opacity="0.65" />
+                      <path d="M 0,0 L 800,0 L 800,55 Q 580,105 380,45 Q 180,0 0,60 Z" fill={t.waveTop} />
+                    </svg>
+                  ) : t.waveType === 'arch' ? (
+                    <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '110px', pointerEvents: 'none' }} preserveAspectRatio="none">
+                      <path d="M 0,0 L 800,0 L 800,85 Q 550,-10 320,85 Q 150,130 0,60 Z" fill={t.waveSub} opacity="0.75" />
+                      <path d="M 0,0 L 800,0 L 800,65 Q 530,-25 300,70 Q 140,110 0,45 Z" fill={t.waveTop} />
+                    </svg>
+                  ) : (
+                    <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '110px', pointerEvents: 'none' }} preserveAspectRatio="none">
+                      <path d="M 0,32 Q 210,-15 470,22 Q 650,120 800,88 L 800,0 L 0,0 Z" fill={t.waveSub} opacity="0.65" />
+                      <path d="M 0,24 Q 230,-18 480,15 Q 660,110 800,82 L 800,58 Q 660,85 490,0 L 0,0 Z" fill={t.waveTop} />
+                    </svg>
+                  )}
+
+                  {/* الشعار */}
+                  <div style={{ position: 'relative', zIndex: 2, display: 'flex', marginTop: '4px' }}>
+                    {customLogo ? (
+                      <img src={customLogo} alt="أكاديمية عقدة" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
+                    ) : (
+                      <UqdahLogo size={80} />
                     )}
                   </div>
 
-                  {/* الخيارات */}
-                  {activeOptions.length > 0 && (
+                  {/* دائرة اسم المادة */}
+                  <div style={{ position: 'relative', zIndex: 3, display: 'flex', justifyContent: 'center', marginTop: '-30px', marginBottom: '-38px' }}>
                     <div
                       style={{
-                        display: 'grid',
-                        gridTemplateColumns: activeOptions.length === 1 ? '1fr' : 'repeat(2, 1fr)',
-                        gap: 'clamp(8px, 2vw, 12px) clamp(10px, 3vw, 16px)',
-                        marginTop: '14px',
-                        maxWidth: activeOptions.length === 1 ? '380px' : '100%',
-                        marginRight: 'auto',
-                        marginLeft: 'auto',
-                      }}
-                    >
-                      {activeOptions.map((opt, index) => {
-                        const isCorrect = highlightCorrectAnswer && rightAnswer === opt.id;
-                        return (
-                          <div
-                            key={opt.id}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              border: `1.8px solid ${isCorrect ? '#8CE0B0' : t.border}`,
-                              backgroundColor: isCorrect ? '#B6F2CF' : '#FFFFFF',
-                              borderRadius: '10px',
-                              padding: '5px 8px',
-                              gap: '6px',
-                              minHeight: '42px',
-                            }}
-                          >
-                            <span
-                              style={{
-                                width: '25px',
-                                height: '25px',
-                                borderRadius: '50%',
-                                backgroundColor: isCorrect ? '#10B981' : t.optionBadge,
-                                color: '#ffffff',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontWeight: 800,
-                                fontSize: '13px',
-                                flexShrink: 0,
-                              }}
-                            >
-                              {arabicLabels[index] || opt.label}
-                            </span>
-                            <div
-                              style={{
-                                flex: 1,
-                                textAlign: 'center',
-                                fontWeight: 800,
-                                fontSize: 'clamp(14px, 3.4vw, 17px)',
-                                color: t.textMain,
-                              }}
-                            >
-                              {opt.text && <div>{opt.text}</div>}
-                              {opt.image && (
-                                <img
-                                  src={opt.image}
-                                  alt=""
-                                  style={{
-                                    maxHeight: '60px',
-                                    margin: '4px auto 0',
-                                    display: 'block',
-                                    borderRadius: '6px',
-                                    objectFit: 'contain',
-                                  }}
-                                />
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* جملة الربط الذهني */}
-                  {hasMnemonicText && (
-                    <div
-                      style={{
-                        marginTop: '12px',
-                        backgroundColor: t.mnemonicBg,
-                        borderRadius: '12px',
-                        padding: '6px 10px',
+                        width: '86px',
+                        height: '86px',
+                        borderRadius: '50%',
+                        backgroundColor: t.subjectBg,
+                        color: t.subjectColor,
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '8px',
+                        justifyContent: 'center',
+                        fontWeight: 800,
+                        fontSize: '28px',
+                        textShadow: '0 1px 2px rgba(0,0,0,0.15)',
+                        boxShadow: '0 4px 10px rgba(0,0,0,0.08)',
                       }}
                     >
-                      <span
-                        style={{
-                          backgroundColor: t.mnemonicBadge,
-                          color: '#ffffff',
-                          padding: '2px 8px',
-                          borderRadius: '999px',
-                          fontSize: '12px',
-                          fontWeight: 800,
-                          flexShrink: 0,
-                        }}
-                      >
-                        ربط
-                      </span>
-                      <div
-                        style={{
-                          flex: 1,
-                          textAlign: 'center',
-                          fontWeight: 800,
-                          fontSize: 'clamp(13px, 3.2vw, 16px)',
-                          color: t.textMain,
-                        }}
-                      >
-                        {mnemonicText}
-                      </div>
+                      {subject || 'احياء'}
                     </div>
-                  )}
-                </div>
+                  </div>
 
-                {/* الميديا أسفل الصندوق بنسبة أبعاد موحدة 100% للجوال واللابتوب */}
-                {hasMnemonicMedia && (
+                  {/* الصندوق الأبيض للأسئلة والخيارات والربط */}
                   <div
                     style={{
                       position: 'relative',
                       zIndex: 2,
-                      marginTop: '10px',
-                      display: 'flex',
-                      justifyContent: 'center',
-                      borderRadius: '0 0 20px 20px',
-                      overflow: 'hidden',
+                      backgroundColor: t.cardBg,
+                      border: `1.8px solid ${t.border}`,
+                      borderRadius: '24px',
+                      padding: '40px 22px 18px',
+                      boxSizing: 'border-box',
                     }}
                   >
-                    {mnemonicMediaType === 'video' ? (
-                      <video
-                        ref={videoPlayerRef}
-                        src={mnemonicMediaUrl}
-                        controls
-                        playsInline
-                        crossOrigin="anonymous"
+                    {/* نص وصورة السؤال */}
+                    <div
+                      style={{
+                        textAlign: 'center',
+                        fontWeight: 800,
+                        fontSize: '22px',
+                        color: t.textMain,
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {questionText && <div>{questionText}</div>}
+                      {questionImage && (
+                        <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'center' }}>
+                          <img
+                            src={questionImage}
+                            alt="صورة السؤال"
+                            style={{ maxHeight: '180px', maxWidth: '100%', borderRadius: '12px', objectFit: 'contain', border: `1px solid ${t.border}33` }}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* الخيارات المتناسقة دون انكسار في الأسطر */}
+                    {activeOptions.length > 0 && (
+                      <div
                         style={{
-                          width: '100%',
-                          maxWidth: '430px',
-                          // نسبة أبعاد موحدة وثابتة لا تتغير بين الجوال والكمبيوتر
-                          aspectRatio: '1 / 0.92',
-                          objectFit: 'cover',
-                          display: 'block',
-                          backgroundColor: '#000',
-                          borderTopLeftRadius: '14px',
-                          borderTopRightRadius: '14px',
+                          display: 'grid',
+                          gridTemplateColumns: activeOptions.length === 1 ? '1fr' : 'repeat(2, 1fr)',
+                          gap: '12px 14px',
+                          marginTop: '15px',
+                          maxWidth: activeOptions.length === 1 ? '380px' : '100%',
+                          marginRight: 'auto',
+                          marginLeft: 'auto',
                         }}
-                      />
-                    ) : (
-                      <img
-                        src={mnemonicMediaUrl}
-                        alt="ربط"
+                      >
+                        {activeOptions.map((opt, index) => {
+                          const isCorrect = highlightCorrectAnswer && rightAnswer === opt.id;
+                          return (
+                            <div
+                              key={opt.id}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                border: `1.8px solid ${isCorrect ? '#8CE0B0' : t.border}`,
+                                backgroundColor: isCorrect ? '#B6F2CF' : '#FFFFFF',
+                                borderRadius: '10px',
+                                padding: '6px 10px',
+                                gap: '8px',
+                                minHeight: '44px',
+                              }}
+                            >
+                              <span
+                                style={{
+                                  width: '26px',
+                                  height: '26px',
+                                  borderRadius: '50%',
+                                  backgroundColor: isCorrect ? '#10B981' : t.optionBadge,
+                                  color: '#ffffff',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontWeight: 800,
+                                  fontSize: '14px',
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {arabicLabels[index] || opt.label}
+                              </span>
+                              <div
+                                style={{
+                                  flex: 1,
+                                  textAlign: 'center',
+                                  fontWeight: 800,
+                                  fontSize: '17px',
+                                  color: t.textMain,
+                                }}
+                              >
+                                {opt.text && <div>{opt.text}</div>}
+                                {opt.image && (
+                                  <img
+                                    src={opt.image}
+                                    alt=""
+                                    style={{
+                                      maxHeight: '60px',
+                                      margin: '4px auto 0',
+                                      display: 'block',
+                                      borderRadius: '6px',
+                                      objectFit: 'contain',
+                                    }}
+                                  />
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* جملة الربط الذهني */}
+                    {hasMnemonicText && (
+                      <div
                         style={{
-                          width: '100%',
-                          maxWidth: '430px',
-                          // نفس نسبة الأبعاد الموحدة للصورة
-                          aspectRatio: '1 / 0.92',
-                          objectFit: 'cover',
-                          display: 'block',
-                          borderTopLeftRadius: '14px',
-                          borderTopRightRadius: '14px',
+                          marginTop: '14px',
+                          backgroundColor: t.mnemonicBg,
+                          borderRadius: '12px',
+                          padding: '7px 12px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
                         }}
-                      />
+                      >
+                        <span
+                          style={{
+                            backgroundColor: t.mnemonicBadge,
+                            color: '#ffffff',
+                            padding: '2px 10px',
+                            borderRadius: '999px',
+                            fontSize: '13px',
+                            fontWeight: 800,
+                            flexShrink: 0,
+                          }}
+                        >
+                          ربط
+                        </span>
+                        <div
+                          style={{
+                            flex: 1,
+                            textAlign: 'center',
+                            fontWeight: 800,
+                            fontSize: '16.5px',
+                            color: t.textMain,
+                          }}
+                        >
+                          {mnemonicText}
+                        </div>
+                      </div>
                     )}
                   </div>
-                )}
+
+                  {/* الميديا أسفل الصندوق: أبعاد موحدة وثابتة تماماً 420px بنسبة (1 / 0.92) */}
+                  {hasMnemonicMedia && (
+                    <div
+                      style={{
+                        position: 'relative',
+                        zIndex: 2,
+                        marginTop: '12px',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        borderRadius: '0 0 20px 20px',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {mnemonicMediaType === 'video' ? (
+                        <video
+                          ref={videoPlayerRef}
+                          src={mnemonicMediaUrl}
+                          controls
+                          playsInline
+                          webkit-playsinline="true"
+                          crossOrigin="anonymous"
+                          style={{
+                            width: '420px',
+                            maxWidth: '100%',
+                            aspectRatio: '1 / 0.92',
+                            objectFit: 'cover',
+                            display: 'block',
+                            backgroundColor: '#000',
+                            borderTopLeftRadius: '14px',
+                            borderTopRightRadius: '14px',
+                          }}
+                        />
+                      ) : (
+                        <img
+                          src={mnemonicMediaUrl}
+                          alt="ربط"
+                          style={{
+                            width: '420px',
+                            maxWidth: '100%',
+                            aspectRatio: '1 / 0.92',
+                            objectFit: 'cover',
+                            display: 'block',
+                            borderTopLeftRadius: '14px',
+                            borderTopRightRadius: '14px',
+                          }}
+                        />
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
