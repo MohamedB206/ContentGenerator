@@ -103,12 +103,12 @@ export default function App() {
   const optDRef = useRef(null);
   const optImgRefs = { A: optARef, B: optBRef, C: optCRef, D: optDRef };
 
-  // حساب الـ Scale بدقة على الجوال لضمان تطابق الأبعاد
+  // حساب الحجم والتصغير بدقة
   useEffect(() => {
     const handleResize = () => {
       if (!previewWrapperRef.current || !templateCardRef.current) return;
       const containerWidth = previewWrapperRef.current.offsetWidth;
-      const baseWidth = 540; // العرض الهندسي الموحد للقالب
+      const baseWidth = 540;
       if (containerWidth < baseWidth) {
         setCanvasScale(containerWidth / baseWidth);
       } else {
@@ -305,28 +305,65 @@ export default function App() {
   const hasMnemonicMedia = enableMnemonic && mnemonicMediaType !== 'none' && mnemonicMediaUrl;
   const isVideoMnemonic = enableMnemonic && mnemonicMediaType === 'video' && mnemonicMediaUrl;
 
-  // استخراج الصورة بجودة موحدة 100% للجوال واللابتوب
+  // دالة تأكيد تحميل وفك تشفير كل الصور قبل الاستخراج (تحل مشكلة الجوال 100%)
+  const waitForImagesToLoad = async (element) => {
+    const images = element.querySelectorAll('img');
+    const promises = Array.from(images).map(async (img) => {
+      if (img.complete) {
+        if (img.decode) {
+          try {
+            await img.decode();
+          } catch (e) {
+            console.warn('Decode skip:', e);
+          }
+        }
+        return;
+      }
+      return new Promise((resolve) => {
+        img.onload = async () => {
+          if (img.decode) {
+            try {
+              await img.decode();
+            } catch (e) {
+              console.warn('Decode skip:', e);
+            }
+          }
+          resolve();
+        };
+        img.onerror = resolve;
+      });
+    });
+    await Promise.all(promises);
+  };
+
+  // استخراج الصورة مع ضمان ظهور كل الصور المرفوعة على الجوال
   const handleExtractImage = async () => {
     if (!templateCardRef.current) return;
     setIsExporting(true);
     try {
+      // 1. انتظار فك تشفير كافة الصور (السؤال، الخيارات، الشعار، والربط)
+      await waitForImagesToLoad(templateCardRef.current);
+
+      // 2. إعدادات استخراج خالية من cacheBust لعدم إفساد روابط الـ Base64
       const dataUrl = await toPng(templateCardRef.current, {
-        cacheBust: true,
         pixelRatio: 2,
+        skipFonts: false,
+        cacheBust: false,
       });
+
       const link = document.createElement('a');
       link.download = `سؤال_عقدة_${subject || 'تحصيلي'}_${Date.now()}.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
       console.error(err);
-      alert('حدث خطأ أثناء استخراج الصورة');
+      alert('حدث خطأ أثناء استخراج الصورة، يرجى المحاولة مجدداً');
     } finally {
       setIsExporting(false);
     }
   };
 
-  // استخراج الفيديو بأبعاد ونسبة موحدة تماماً
+  // استخراج الفيديو مدمجاً مع القالب والصور
   const handleExtractFullVideo = async () => {
     const video = videoPlayerRef.current;
     const cardEl = templateCardRef.current;
@@ -339,7 +376,14 @@ export default function App() {
     setExportProgress(1);
 
     try {
-      const cardPngUrl = await toPng(cardEl, { pixelRatio: 2 });
+      await waitForImagesToLoad(cardEl);
+
+      const cardPngUrl = await toPng(cardEl, {
+        pixelRatio: 2,
+        skipFonts: false,
+        cacheBust: false,
+      });
+
       const cardImg = new Image();
       await new Promise((res) => {
         cardImg.onload = res;
@@ -463,7 +507,7 @@ export default function App() {
             <h3 className="text-base font-black">
               {isVideoMnemonic ? 'جاري استخراج القالب والمقطع معاً...' : 'جاري استخراج الصورة...'}
             </h3>
-            <p className="text-xs text-slate-300">يتم إعداد ملف موحد عالي الدقة</p>
+            <p className="text-xs text-slate-300">يتم إعداد ملف موحد عالي الدقة يضم جميع الصور والمحتوى</p>
             {isVideoMnemonic && exportProgress > 0 && (
               <div className="w-full bg-slate-800 rounded-full h-3 overflow-hidden border border-slate-700">
                 <div
@@ -543,7 +587,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* شريط تبديل التبويبات للجوال فقط لسهولة التحرير والمعاينة */}
+      {/* شريط التبويبات للجوال */}
       <div className="lg:hidden flex items-center bg-slate-200/80 p-1 rounded-2xl mx-3 mt-3">
         <button
           type="button"
@@ -965,9 +1009,8 @@ export default function App() {
             </div>
           </div>
 
-          {/* حاوية المعاينة مع تثبيت الأبعاد هندسياً */}
+          {/* حاوية المعاينة الثابتة هندسياً */}
           <div className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-5 shadow-sm">
-            {/* الحاوية المتكيفة - تحافظ على أبعاد القالب والمقطع بدقة 540px */}
             <div
               ref={previewWrapperRef}
               className="w-full flex justify-center items-start overflow-hidden"
@@ -975,7 +1018,6 @@ export default function App() {
                 height: canvasScale < 1 && measuredCardHeight > 0 ? `${measuredCardHeight * canvasScale}px` : 'auto',
               }}
             >
-              {/* عنصر القالب الثابت هندسياً ليحافظ على نفس أبعاد المقطع والنصوص على أي جهاز */}
               <div
                 style={{
                   width: '540px',
@@ -1028,7 +1070,7 @@ export default function App() {
                     </g>
                   </svg>
 
-                  {/* الموجة العلوية المتنوعة */}
+                  {/* الموجة العلوية */}
                   {t.waveType === 'modern' ? (
                     <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '110px', pointerEvents: 'none' }} preserveAspectRatio="none">
                       <path d="M 0,0 L 800,0 L 800,60 L 500,105 L 200,45 L 0,85 Z" fill={t.waveSub} opacity="0.65" />
@@ -1110,13 +1152,14 @@ export default function App() {
                           <img
                             src={questionImage}
                             alt="صورة السؤال"
+                            crossOrigin="anonymous"
                             style={{ maxHeight: '180px', maxWidth: '100%', borderRadius: '12px', objectFit: 'contain', border: `1px solid ${t.border}33` }}
                           />
                         </div>
                       )}
                     </div>
 
-                    {/* الخيارات المتناسقة دون انكسار في الأسطر */}
+                    {/* الخيارات */}
                     {activeOptions.length > 0 && (
                       <div
                         style={{
@@ -1176,6 +1219,7 @@ export default function App() {
                                   <img
                                     src={opt.image}
                                     alt=""
+                                    crossOrigin="anonymous"
                                     style={{
                                       maxHeight: '60px',
                                       margin: '4px auto 0',
@@ -1233,7 +1277,7 @@ export default function App() {
                     )}
                   </div>
 
-                  {/* الميديا أسفل الصندوق: أبعاد موحدة وثابتة تماماً 420px بنسبة (1 / 0.92) */}
+                  {/* الميديا أسفل الصندوق: نسبة موحدة 100% */}
                   {hasMnemonicMedia && (
                     <div
                       style={{
@@ -1269,6 +1313,7 @@ export default function App() {
                         <img
                           src={mnemonicMediaUrl}
                           alt="ربط"
+                          crossOrigin="anonymous"
                           style={{
                             width: '420px',
                             maxWidth: '100%',
