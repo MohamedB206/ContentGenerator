@@ -1,6 +1,24 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { toPng } from 'html-to-image';
 
+// دوال مساعدة للتعامل الآمن مع LocalStorage بدون أخطاء
+const loadStorage = (key, fallback) => {
+  try {
+    const item = localStorage.getItem(key);
+    return item ? JSON.parse(item) : fallback;
+  } catch (_) {
+    return fallback;
+  }
+};
+
+const saveStorage = (key, value) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (e) {
+    console.warn('LocalStorage save failed:', e);
+  }
+};
+
 // الشعار المطابق للصورة بـ SVG نظيف ومستقر
 const UqdahLogo = ({ size = 80 }) => (
   <svg viewBox="0 0 180 175" width={size} height={size} style={{ overflow: 'visible' }}>
@@ -49,36 +67,40 @@ const UqdahLogo = ({ size = 80 }) => (
 );
 
 export default function App() {
-  const [customLogo, setCustomLogo] = useState(null);
-
-  const [subjects, setSubjects] = useState(['احياء', 'رياضيات', 'فيزياء', 'كيمياء']);
-  const [subject, setSubject] = useState('احياء');
+  // حالة الشعار والمواد مسترجعة تلقائياً من الذاكرة المحلية
+  const [customLogo, setCustomLogo] = useState(() => loadStorage('uqdah_logo', null));
+  const [subjects, setSubjects] = useState(() => loadStorage('uqdah_subjects', ['احياء', 'رياضيات', 'فيزياء', 'كيمياء']));
+  const [subject, setSubject] = useState(() => loadStorage('uqdah_subject', 'احياء'));
   const [newSubjectInput, setNewSubjectInput] = useState('');
 
   // القالب المختار
-  const [selectedTemplate, setSelectedTemplate] = useState('emerald');
+  const [selectedTemplate, setSelectedTemplate] = useState(() => loadStorage('uqdah_template', 'emerald'));
 
-  // السؤال
-  const [questionText, setQuestionText] = useState('أي الهرمونات التالية يُنتج في الخصية؟');
-  const [questionImage, setQuestionImage] = useState(null);
+  // السؤال مسترجع تلقائياً
+  const [questionText, setQuestionText] = useState(() => loadStorage('uqdah_q_text', 'أي الهرمونات التالية يُنتج في الخصية؟'));
+  const [questionImage, setQuestionImage] = useState(() => loadStorage('uqdah_q_img', null));
 
-  // الخيارات
-  const [options, setOptions] = useState([
+  // الخيارات مسترجعة تلقائياً
+  const [options, setOptions] = useState(() => loadStorage('uqdah_options', [
     { id: 'A', label: 'أ', text: 'الألدوستيرون', image: null, enabled: true },
     { id: 'B', label: 'ب', text: 'الكورتيزول', image: null, enabled: true },
     { id: 'C', label: 'ج', text: 'التستوستيرون', image: null, enabled: true },
     { id: 'D', label: 'د', text: 'البروجيسترون', image: null, enabled: true },
-  ]);
+  ]));
 
-  const [rightAnswer, setRightAnswer] = useState('C');
-  const [highlightCorrectAnswer, setHighlightCorrectAnswer] = useState(true);
+  const [rightAnswer, setRightAnswer] = useState(() => loadStorage('uqdah_right_ans', 'C'));
+  const [highlightCorrectAnswer, setHighlightCorrectAnswer] = useState(() => loadStorage('uqdah_highlight', true));
 
-  // الربط الذهني
-  const [enableMnemonic, setEnableMnemonic] = useState(true);
-  const [mnemonicLabel, setMnemonicLabel] = useState('ربط');
-  const [mnemonicText, setMnemonicText] = useState('هو هرمون ذكري ف أخوك لما يشوفكم يقول تسترو (تستيستيرون)');
-  const [mnemonicMediaType, setMnemonicMediaType] = useState('video');
-  const [mnemonicMediaUrl, setMnemonicMediaUrl] = useState(null);
+  // الربط الذهني مسترجع تلقائياً
+  const [enableMnemonic, setEnableMnemonic] = useState(() => loadStorage('uqdah_mnemonic_en', true));
+  const [mnemonicLabel, setMnemonicLabel] = useState(() => loadStorage('uqdah_mnemonic_lbl', 'ربط'));
+  const [mnemonicText, setMnemonicText] = useState(() => loadStorage('uqdah_mnemonic_txt', 'هو هرمون ذكري ف أخوك لما يشوفكم يقول تسترو (تستيستيرون)'));
+  const [mnemonicMediaType, setMnemonicMediaType] = useState(() => loadStorage('uqdah_mnemonic_media_type', 'video'));
+  const [mnemonicMediaUrl, setMnemonicMediaUrl] = useState(() => {
+    const saved = loadStorage('uqdah_mnemonic_media_url', null);
+    if (saved && typeof saved === 'string' && saved.startsWith('blob:')) return null;
+    return saved;
+  });
 
   // تبويب الجوال
   const [mobileTab, setMobileTab] = useState('edit');
@@ -113,6 +135,43 @@ export default function App() {
   const optCRef = useRef(null);
   const optDRef = useRef(null);
   const optImgRefs = { A: optARef, B: optBRef, C: optCRef, D: optDRef };
+
+  // مزامنة وحفظ كافة المدخلات في الـ LocalStorage تلقائياً فور كتابتها
+  useEffect(() => {
+    saveStorage('uqdah_logo', customLogo);
+  }, [customLogo]);
+
+  useEffect(() => {
+    saveStorage('uqdah_subjects', subjects);
+    saveStorage('uqdah_subject', subject);
+  }, [subjects, subject]);
+
+  useEffect(() => {
+    saveStorage('uqdah_template', selectedTemplate);
+  }, [selectedTemplate]);
+
+  useEffect(() => {
+    saveStorage('uqdah_q_text', questionText);
+    saveStorage('uqdah_q_img', questionImage);
+  }, [questionText, questionImage]);
+
+  useEffect(() => {
+    saveStorage('uqdah_options', options);
+    saveStorage('uqdah_right_ans', rightAnswer);
+    saveStorage('uqdah_highlight', highlightCorrectAnswer);
+  }, [options, rightAnswer, highlightCorrectAnswer]);
+
+  useEffect(() => {
+    saveStorage('uqdah_mnemonic_en', enableMnemonic);
+    saveStorage('uqdah_mnemonic_lbl', mnemonicLabel);
+    saveStorage('uqdah_mnemonic_txt', mnemonicText);
+    saveStorage('uqdah_mnemonic_media_type', mnemonicMediaType);
+    if (mnemonicMediaUrl && typeof mnemonicMediaUrl === 'string' && !mnemonicMediaUrl.startsWith('blob:')) {
+      saveStorage('uqdah_mnemonic_media_url', mnemonicMediaUrl);
+    } else if (!mnemonicMediaUrl) {
+      saveStorage('uqdah_mnemonic_media_url', null);
+    }
+  }, [enableMnemonic, mnemonicLabel, mnemonicText, mnemonicMediaType, mnemonicMediaUrl]);
 
   // دالة تصغير وضغط سريعة للصور لتفادي استهلاك ذاكرة الآيفون
   const compressImage = (file, maxWidth = 900, maxHeight = 900, quality = 0.9) => {
@@ -419,9 +478,9 @@ export default function App() {
     });
 
     const baseImg = new Image();
-    await new Promise((res) => {
+    await new Promise((res, rej) => {
       baseImg.onload = res;
-      baseImg.onerror = res;
+      baseImg.onerror = rej;
       setTimeout(res, 2000);
       baseImg.src = basePngUrl;
     });
@@ -774,21 +833,12 @@ export default function App() {
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <h1 className="text-sm sm:text-base font-black text-slate-900 truncate">أكاديمية عقدة</h1>
-                {customLogo ? (
-                  <button
-                    type="button"
-                    onClick={() => setCustomLogo(null)}
-                    className="text-[10px] font-bold text-rose-600 hover:underline cursor-pointer"
-                  >
-                    استعادة الشعار الافتراضي
-                  </button>
-                ) : (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#D65261]/10 text-[#A83846]">
-                    صانع القوالب الذكي
-                  </span>
-                )}
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  حفظ تلقائي مفعّل
+                </span>
               </div>
-              <p className="text-[10px] sm:text-xs text-slate-500 truncate">انقر على الشعار لتغييره متى شئت</p>
+              <p className="text-[10px] sm:text-xs text-slate-500 truncate">يتم حفظ بياناتك تلقائياً في ذاكرة المتصفح</p>
             </div>
           </div>
 
@@ -1098,12 +1148,12 @@ export default function App() {
 
             <hr className="border-slate-100" />
 
-            {/* 4. الربط الذهني */}
+            {/* 4. الربط الذهني مع شارة قابلة للتعديل أو الحذف */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-xs font-black text-slate-800 block">4. الربط والشرح الذهني</span>
-                  <span className="text-[11px] text-slate-500">خصص شارة الكلمة أو احذفها واكتب الشرح</span>
+                  <span className="text-[11px] text-slate-500">تعديلات الشرح والشارة محفوظة تلقائياً</span>
                 </div>
                 <button
                   type="button"
@@ -1565,13 +1615,8 @@ export default function App() {
                       </svg>
 
                       <svg viewBox="0 0 170 145" style={{ position: 'absolute', bottom: 0, right: 0, width: '170px', height: '145px', pointerEvents: 'none', zIndex: 1 }}>
-                        <g transform="translate(50, 15)">
-                          <circle cx="25" cy="25" r="22" fill="#FEF3C7" stroke="#F59E0B" strokeWidth="2" />
-                          <circle cx="25" cy="25" r="14" fill="#EDE9FE" stroke="#7C3AED" strokeWidth="2" />
-                          <circle cx="25" cy="25" r="6" fill="#EF4444" stroke="none" />
-                          <path d="M 5,5 L 25,25" stroke="#4C1D95" strokeWidth="2.5" strokeLinecap="round" />
-                          <polyline points="20,12 25,25 12,20" fill="#4C1D95" />
-                        </g>
+                        <polygon points="50,90 28,100 38,108" fill="#FF7A1A" />
+                        <polygon points="68,70 48,82 58,90" fill="#FF7A1A" />
                         <path d="M 170,145 L 0,145 Q 35,108 80,98 L 125,108 L 170,68 Z" fill="#F59E0B" />
                         <path d="M 170,145 L 10,145 L 22,135 L 35,138 L 48,126 L 60,132 L 75,118 L 90,124 L 105,112 L 120,118 L 135,104 L 150,112 L 160,88 L 170,94 Z" fill="#4C1D95" stroke="#FFFFFF" strokeWidth="1.5" />
                       </svg>
