@@ -56,7 +56,7 @@ export default function App() {
   const [newSubjectInput, setNewSubjectInput] = useState('');
 
   // القالب المختار
-  const [selectedTemplate, setSelectedTemplate] = useState('torn_paper');
+  const [selectedTemplate, setSelectedTemplate] = useState('emerald');
 
   // السؤال
   const [questionText, setQuestionText] = useState('أي الهرمونات التالية يُنتج في الخصية؟');
@@ -178,12 +178,12 @@ export default function App() {
     setMnemonicMediaType('none');
   };
 
-  // القوالب السبعة مع استعادة ثيم الورق الممزق الداكن الفخم كما كان في الصورة
+  // القوالب السبعة مع ربط القوالب 4 و 5 و 6 بقصاصات الورق والمواد المرتبطة بها
   const themes = {
     torn_paper: {
       id: 'torn_paper',
       title: '1. كولاج التحدي (الورق الممزق)',
-      desc: 'مطابق للصورة تماماً: ثيم داكن، ورق ممزق، وعلامة ؟ 3D',
+      desc: 'مطابق للصورة: ثيم داكن، ورق ممزق، وعلامة ؟ 3D',
       bg: '#14112E',
       waveTop: '#7548DC',
       waveSub: '#FF7A1A',
@@ -258,64 +258,64 @@ export default function App() {
     },
     navy: {
       id: 'navy',
-      title: '5. التحصيلي الملكي (كحلي وسيان)',
-      desc: 'مود هندسي للفيزياء والرياضيات',
+      title: '5. التحصيلي الملكي (فيزياء ورياضيات)',
+      desc: 'قصاصات ورق + ذرات، مغناطيس، تكاملات وهندسة',
       bg: '#F0F4F9',
       waveTop: '#0F2744',
       waveSub: '#0284C7',
       cardBg: '#FFFFFF',
       border: '#0F2744',
-      doodleColor: '#CBD5E1',
+      doodleColor: '#0284C7',
       subjectBg: '#0284C7',
       subjectColor: '#FFFFFF',
-      optionBadge: '#7DD3FC',
+      optionBadge: '#0284C7',
       mnemonicBg: '#E0F2FE',
       mnemonicBadge: '#0369A1',
       textMain: '#0F172A',
-      waveType: 'modern',
+      waveType: 'navy',
       isDark: false,
     },
     emerald: {
       id: 'emerald',
-      title: '6. المينت الأكاديمي (أخضر زمردي)',
-      desc: 'مود هادئ للأحياء والكيمياء',
+      title: '6. المينت الأكاديمي (أحياء وكيمياء)',
+      desc: 'قصاصات ورق + حمض نووي، دوارق كيميائية ومجهر',
       bg: '#F0FDF4',
       waveTop: '#064E3B',
       waveSub: '#10B981',
       cardBg: '#FFFFFF',
       border: '#064E3B',
-      doodleColor: '#A7F3D0',
+      doodleColor: '#10B981',
       subjectBg: '#10B981',
       subjectColor: '#FFFFFF',
-      optionBadge: '#6EE7B7',
+      optionBadge: '#059669',
       mnemonicBg: '#D1FAE5',
       mnemonicBadge: '#047857',
       textMain: '#064E3B',
-      waveType: 'leaf',
+      waveType: 'emerald',
       isDark: false,
     },
     violet: {
       id: 'violet',
-      title: '7. البنفسجي الإبداعي (ذهبي وموف)',
-      desc: 'ثيم فخم للقدرات والشامل',
+      title: '7. البنفسجي الإبداعي (قدرات وشامل)',
+      desc: 'قصاصات ورق + عقل وتروس، مصباح فكرة وأهداف',
       bg: '#F6F3FF',
       waveTop: '#4C1D95',
       waveSub: '#F59E0B',
       cardBg: '#FFFFFF',
       border: '#4C1D95',
-      doodleColor: '#DDD6FE',
+      doodleColor: '#7C3AED',
       subjectBg: '#7C3AED',
       subjectColor: '#FFFFFF',
-      optionBadge: '#C4B5FD',
+      optionBadge: '#7C3AED',
       mnemonicBg: '#EDE9FE',
       mnemonicBadge: '#6D28D9',
       textMain: '#2E1065',
-      waveType: 'arch',
+      waveType: 'violet',
       isDark: false,
     },
   };
 
-  const t = themes[selectedTemplate] || themes.torn_paper;
+  const t = themes[selectedTemplate] || themes.emerald;
   const arabicLabels = ['أ', 'ب', 'ج', 'د'];
 
   const activeOptions = options.filter(
@@ -327,7 +327,7 @@ export default function App() {
   const hasMnemonicMedia = enableMnemonic && mnemonicMediaType !== 'none' && mnemonicMediaUrl;
   const isVideoMnemonic = enableMnemonic && mnemonicMediaType === 'video' && mnemonicMediaUrl;
 
-  // استخراج الصورة مباشرة في خطوة واحدة بدون أي تكرار للشعار
+  // استخراج الصورة في خطوة واحدة بدون أي تكرار للشعار
   const handleExtractImage = async () => {
     if (!templateCardRef.current) return;
     setIsExporting(true);
@@ -356,7 +356,7 @@ export default function App() {
     }
   };
 
-  // استخراج الفيديو مدمجاً بدون تكرار الشعار
+  // استخراج الفيديو مدمجاً بدون أي تكرار للشعار مع تزامن كامل للصوت
   const handleExtractFullVideo = async () => {
     const video = videoPlayerRef.current;
     const cardEl = templateCardRef.current;
@@ -601,7 +601,7 @@ export default function App() {
                   صانع القوالب الذكي
                 </span>
               </div>
-              <p className="text-[10px] sm:text-xs text-slate-500 truncate">تم تصحيح تكرار الشعار في جميع القوالب</p>
+              <p className="text-[10px] sm:text-xs text-slate-500 truncate">قوالب الأحياء والكيمياء والفيزياء والقدرات</p>
             </div>
           </div>
 
@@ -1109,7 +1109,7 @@ export default function App() {
                     border: `1.5px solid ${t.border}22`,
                   }}
                 >
-                  {/* عناصر الجرافيك لقالب الورق الممزق والكولاج (Torn Paper Theme) بكامل تفاصيلها الأصلية */}
+                  {/* عناصر الجرافيك لقالب الورق الممزق والكولاج (Torn Paper Theme) */}
                   {t.waveType === 'torn_paper' ? (
                     <>
                       {/* زاوية أعلى اليسار */}
@@ -1181,9 +1181,189 @@ export default function App() {
                         <path d="M 45,40 L 15,62 L 20,72 L 14,85 L 45,98 Z" fill="#7548DC" stroke="#FFFFFF" strokeWidth="1.2" />
                       </svg>
                     </>
-                  ) : (
+                  ) : t.waveType === 'emerald' ? (
+                    /* قالب المينت الأكاديمي (أحياء وكيمياء): قصاصات ورق ممزقة + دورق كيميائي، حمض نووي، مجهر، وحلقات بنزين */
                     <>
-                      {/* النقوش العلمية في الخلفية لباقي القوالب */}
+                      {/* زاوية أعلى اليسار: ورق ممزق بلون زمردي ومينت */}
+                      <svg viewBox="0 0 170 145" style={{ position: 'absolute', top: 0, left: 0, width: '170px', height: '145px', pointerEvents: 'none', zIndex: 1 }}>
+                        <path d="M 0,0 L 145,0 Q 120,35 90,70 L 50,110 L 0,135 Z" fill="#10B981" />
+                        <path d="M 0,0 L 135,0 L 130,12 L 122,16 L 124,26 L 115,32 L 118,42 L 105,50 L 108,58 L 95,66 L 90,78 L 75,85 L 72,96 L 55,104 L 50,115 L 32,122 L 25,130 L 0,125 Z" fill="#064E3B" stroke="#FFFFFF" strokeWidth="1.5" />
+                        {/* فقاعات وأشعة تفاعل */}
+                        <circle cx="115" cy="85" r="4" fill="#10B981" />
+                        <circle cx="132" cy="72" r="3" fill="#34D399" />
+                        <circle cx="98" cy="108" r="3.5" fill="#10B981" />
+                      </svg>
+
+                      {/* زاوية أعلى اليمين: رقعة ورق ممزق + شريط الحمض النووي (DNA) وحلقة البنزين */}
+                      <svg viewBox="0 0 160 160" style={{ position: 'absolute', top: 0, right: 0, width: '160px', height: '160px', pointerEvents: 'none', zIndex: 1 }}>
+                        <path d="M 50,0 L 160,0 L 160,130 Q 115,115 70,95 L 45,55 Z" fill="#10B981" />
+                        <path d="M 60,0 L 160,0 L 160,120 L 148,118 L 142,126 L 130,116 L 120,122 L 108,112 L 95,116 L 85,102 L 72,106 L 65,88 L 58,65 L 50,40 L 60,20 Z" fill="#064E3B" stroke="#FFFFFF" strokeWidth="1.5" />
+                        {/* شريط الحمض النووي DNA الحلزوني */}
+                        <g stroke="#FFFFFF" strokeWidth="2" fill="none" opacity="0.95" transform="translate(85, 20)">
+                          <path d="M 15,5 Q 35,25 15,45 Q -5,65 15,85" />
+                          <path d="M 30,5 Q 10,25 30,45 Q 50,65 30,85" />
+                          {/* روابط النيتروجين */}
+                          <line x1="16" y1="15" x2="28" y2="15" strokeWidth="1.8" />
+                          <line x1="22" y1="25" x2="24" y2="25" strokeWidth="1.8" />
+                          <line x1="16" y1="35" x2="28" y2="35" strokeWidth="1.8" />
+                          <line x1="16" y1="55" x2="28" y2="55" strokeWidth="1.8" />
+                          <line x1="22" y1="65" x2="24" y2="65" strokeWidth="1.8" />
+                          <line x1="16" y1="75" x2="28" y2="75" strokeWidth="1.8" />
+                        </g>
+                      </svg>
+
+                      {/* زاوية أسفل اليسار: دورق كيميائي مخروطي مع فقاعات + خلايا حيوية */}
+                      <svg viewBox="0 0 170 160" style={{ position: 'absolute', bottom: 0, left: 0, width: '170px', height: '160px', pointerEvents: 'none', zIndex: 1 }}>
+                        {/* دورق كيمياء مخروطي (Erlenmeyer Flask) مع فقاعات وسائل */}
+                        <g transform="translate(15, 20)">
+                          <path d="M 28,15 L 28,28 L 10,65 A 6,6 0 0,0 16,74 L 54,74 A 6,6 0 0,0 60,65 L 42,28 L 42,15 Z" fill="#D1FAE5" stroke="#059669" strokeWidth="2.5" />
+                          {/* سائل التفاعل الكيميائي */}
+                          <path d="M 18,52 Q 35,46 52,52 L 56,66 A 4,4 0 0,1 52,71 L 18,71 A 4,4 0 0,1 14,66 Z" fill="#10B981" opacity="0.85" />
+                          {/* فقاعات غازية متصاعدة */}
+                          <circle cx="32" cy="58" r="2.5" fill="#FFFFFF" />
+                          <circle cx="40" cy="48" r="3" fill="#FFFFFF" />
+                          <circle cx="30" cy="36" r="2" fill="#059669" />
+                          <circle cx="36" cy="24" r="2.5" fill="#10B981" />
+                          <circle cx="44" cy="12" r="3" fill="#059669" />
+                        </g>
+                        {/* حلقة بنزين كيميائية (Benzene ring) */}
+                        <polygon points="100,35 118,25 136,35 136,55 118,65 100,55" fill="none" stroke="#10B981" strokeWidth="2" strokeDasharray="3,2" />
+                        <circle cx="118" cy="45" r="8" fill="none" stroke="#059669" strokeWidth="1.8" />
+                        {/* طبقة ورق ممزق سفلية */}
+                        <path d="M 0,160 L 160,160 Q 125,125 85,115 L 40,122 L 0,80 Z" fill="#10B981" />
+                        <path d="M 0,160 L 150,160 L 145,150 L 135,144 L 126,150 L 115,140 L 104,146 L 90,132 L 78,138 L 65,126 L 50,130 L 35,116 L 20,122 L 0,105 Z" fill="#064E3B" stroke="#FFFFFF" strokeWidth="1.5" />
+                      </svg>
+
+                      {/* زاوية أسفل اليمين: أنبوب اختبار + مجهر وفحص أحياء */}
+                      <svg viewBox="0 0 170 145" style={{ position: 'absolute', bottom: 0, right: 0, width: '170px', height: '145px', pointerEvents: 'none', zIndex: 1 }}>
+                        {/* أنبوب اختبار مائل مع قطرات */}
+                        <g transform="translate(45, 15) rotate(35)">
+                          <rect x="0" y="0" width="14" height="42" rx="7" fill="#D1FAE5" stroke="#059669" strokeWidth="2" />
+                          <path d="M 2,20 Q 7,17 12,20 L 12,35 A 5,5 0 0,1 2,35 Z" fill="#10B981" />
+                          <circle cx="7" cy="48" r="2" fill="#059669" />
+                          <circle cx="7" cy="55" r="2.5" fill="#10B981" />
+                        </g>
+                        {/* طبقة ورق ممزق سفلية */}
+                        <path d="M 170,145 L 0,145 Q 35,108 80,98 L 125,108 L 170,68 Z" fill="#10B981" />
+                        <path d="M 170,145 L 10,145 L 22,135 L 35,138 L 48,126 L 60,132 L 75,118 L 90,124 L 105,112 L 120,118 L 135,104 L 150,112 L 160,88 L 170,94 Z" fill="#064E3B" stroke="#FFFFFF" strokeWidth="1.5" />
+                      </svg>
+                    </>
+                  ) : t.waveType === 'navy' ? (
+                    /* قالب الفيزياء والرياضيات (التحصيلي الملكي): قصاصات ورق ممزقة + مجسم الذرة، المغناطيس، التكاملات، والمنشور */
+                    <>
+                      {/* زاوية أعلى اليسار: ورق ممزق كحلي وسيان */}
+                      <svg viewBox="0 0 170 145" style={{ position: 'absolute', top: 0, left: 0, width: '170px', height: '145px', pointerEvents: 'none', zIndex: 1 }}>
+                        <path d="M 0,0 L 140,0 Q 120,35 90,68 L 52,108 L 0,132 Z" fill="#0284C7" />
+                        <path d="M 0,0 L 130,0 L 126,10 L 120,14 L 122,24 L 115,30 L 117,38 L 108,46 L 110,54 L 98,62 L 95,72 L 80,80 L 78,90 L 62,98 L 58,108 L 40,116 L 35,124 L 18,128 L 0,122 Z" fill="#0F2744" stroke="#FFFFFF" strokeWidth="1.5" />
+                        {/* رموز رياضية مضيئة */}
+                        <text x="95" y="125" fontFamily="serif" fontSize="18" fill="#0284C7" fontWeight="bold">∑</text>
+                        <text x="125" y="85" fontFamily="serif" fontSize="20" fill="#38BDF8" fontWeight="bold">∫</text>
+                      </svg>
+
+                      {/* زاوية أعلى اليمين: رقعة ورق ممزق + مجسم الذرة بمداراتها الإلكترونية */}
+                      <svg viewBox="0 0 160 160" style={{ position: 'absolute', top: 0, right: 0, width: '160px', height: '160px', pointerEvents: 'none', zIndex: 1 }}>
+                        <path d="M 45,0 L 160,0 L 160,135 Q 120,120 75,100 L 55,60 Z" fill="#0284C7" />
+                        <path d="M 55,0 L 160,0 L 160,125 L 148,122 L 140,130 L 130,120 L 120,125 L 110,115 L 98,118 L 88,105 L 75,110 L 68,95 L 62,70 L 52,45 L 60,25 Z" fill="#0F2744" stroke="#FFFFFF" strokeWidth="1.5" />
+                        {/* مجسم الذرة بمسارات الإلكترونات */}
+                        <g transform="translate(100, 50)" stroke="#38BDF8" strokeWidth="1.8" fill="none">
+                          <ellipse cx="0" cy="0" rx="32" ry="11" />
+                          <ellipse cx="0" cy="0" rx="32" ry="11" transform="rotate(60)" />
+                          <ellipse cx="0" cy="0" rx="32" ry="11" transform="rotate(120)" />
+                          {/* نواة الذرة وإلكترونات المسارات */}
+                          <circle cx="0" cy="0" r="5" fill="#0284C7" stroke="none" />
+                          <circle cx="28" cy="0" r="2.5" fill="#FFFFFF" stroke="none" />
+                          <circle cx="-14" cy="24" r="2.5" fill="#FFFFFF" stroke="none" />
+                        </g>
+                      </svg>
+
+                      {/* زاوية أسفل اليسار: مغناطيس حدوة الحصان + خطوط المجال والمعادلات */}
+                      <svg viewBox="0 0 170 160" style={{ position: 'absolute', bottom: 0, left: 0, width: '170px', height: '160px', pointerEvents: 'none', zIndex: 1 }}>
+                        {/* مغناطيس حدوة الحصان مع أقطاب N و S */}
+                        <g transform="translate(30, 25)">
+                          <path d="M 12,55 L 12,24 A 20,20 0 0,1 52,24 L 52,55 L 40,55 L 40,24 A 8,8 0 0,0 24,24 L 24,55 Z" fill="#E2E8F0" stroke="#0F2744" strokeWidth="2" />
+                          {/* أقطاب المغناطيس */}
+                          <rect x="12" y="42" width="12" height="13" fill="#EF4444" />
+                          <rect x="40" y="42" width="12" height="13" fill="#3B82F6" />
+                          <text x="15" y="52" fontSize="9" fontWeight="bold" fill="#FFF">N</text>
+                          <text x="44" y="52" fontSize="9" fontWeight="bold" fill="#FFF">S</text>
+                        </g>
+                        <text x="95" y="40" fontFamily="sans-serif" fontSize="13" fill="#0284C7" fontWeight="bold">E = mc²</text>
+                        <text x="95" y="65" fontFamily="sans-serif" fontSize="13" fill="#0F2744" fontWeight="bold">F = ma</text>
+                        {/* طبقة ورق ممزق سفلية */}
+                        <path d="M 0,160 L 165,160 Q 130,125 90,118 L 45,125 L 0,85 Z" fill="#0284C7" />
+                        <path d="M 0,160 L 155,160 L 150,150 L 140,145 L 132,152 L 120,142 L 110,148 L 98,135 L 85,142 L 72,130 L 60,135 L 45,120 L 30,126 L 15,105 L 0,110 Z" fill="#0F2744" stroke="#FFFFFF" strokeWidth="1.5" />
+                      </svg>
+
+                      {/* زاوية أسفل اليمين: منشور زجاجي ومثلث فيثاغورس الهندسي */}
+                      <svg viewBox="0 0 170 145" style={{ position: 'absolute', bottom: 0, right: 0, width: '170px', height: '145px', pointerEvents: 'none', zIndex: 1 }}>
+                        {/* مثلث نظرية فيثاغورس والقوانين */}
+                        <polygon points="50,60 110,60 110,15" fill="none" stroke="#0284C7" strokeWidth="2" />
+                        <text x="75" y="75" fontSize="10" fill="#0F2744" fontWeight="bold">a² + b² = c²</text>
+                        {/* طبقة ورق ممزق */}
+                        <path d="M 170,145 L 0,145 Q 35,108 80,98 L 125,108 L 170,68 Z" fill="#0284C7" />
+                        <path d="M 170,145 L 10,145 L 22,135 L 35,138 L 48,126 L 60,132 L 75,118 L 90,124 L 105,112 L 120,118 L 135,104 L 150,112 L 160,88 L 170,94 Z" fill="#0F2744" stroke="#FFFFFF" strokeWidth="1.5" />
+                      </svg>
+                    </>
+                  ) : t.waveType === 'violet' ? (
+                    /* قالب القدرات والتفكير الشامل (البنفسجي الإبداعي): قصاصات ورق ممزقة + دماغ بالتروس، مصباح الفكرة، هدف وسهم 100% */
+                    <>
+                      {/* زاوية أعلى اليسار: ورق ممزق بنفسجي وكهرماني ذهبي */}
+                      <svg viewBox="0 0 170 145" style={{ position: 'absolute', top: 0, left: 0, width: '170px', height: '145px', pointerEvents: 'none', zIndex: 1 }}>
+                        <path d="M 0,0 L 140,0 Q 120,35 90,68 L 52,108 L 0,132 Z" fill="#F59E0B" />
+                        <path d="M 0,0 L 130,0 L 126,10 L 120,14 L 122,24 L 115,30 L 117,38 L 108,46 L 110,54 L 98,62 L 95,72 L 80,80 L 78,90 L 62,98 L 58,108 L 40,116 L 35,124 L 18,128 L 0,122 Z" fill="#4C1D95" stroke="#FFFFFF" strokeWidth="1.5" />
+                        {/* علامات النسبة المئوية % والتفكير */}
+                        <text x="95" y="125" fontFamily="sans-serif" fontSize="22" fill="#F59E0B" fontWeight="900">%</text>
+                        <text x="125" y="85" fontFamily="sans-serif" fontSize="16" fill="#8B5CF6" fontWeight="bold">100%</text>
+                      </svg>
+
+                      {/* زاوية أعلى اليمين: رقعة ورق ممزق + مصباح الفكرة والإبداع المضيء */}
+                      <svg viewBox="0 0 160 160" style={{ position: 'absolute', top: 0, right: 0, width: '160px', height: '160px', pointerEvents: 'none', zIndex: 1 }}>
+                        <path d="M 45,0 L 160,0 L 160,135 Q 120,120 75,100 L 55,60 Z" fill="#F59E0B" />
+                        <path d="M 55,0 L 160,0 L 160,125 L 148,122 L 140,130 L 130,120 L 120,125 L 110,115 L 98,118 L 88,105 L 75,110 L 68,95 L 62,70 L 52,45 L 60,25 Z" fill="#4C1D95" stroke="#FFFFFF" strokeWidth="1.5" />
+                        {/* مصباح الفكرة والإلهام (Idea Lightbulb) */}
+                        <g transform="translate(100, 42)">
+                          <path d="M 12,0 A 16,16 0 0,0 2,24 Q 7,30 7,36 L 17,36 Q 17,30 22,24 A 16,16 0 0,0 12,0 Z" fill="#FEF3C7" stroke="#F59E0B" strokeWidth="2.5" />
+                          <rect x="7" y="37" width="10" height="4" rx="2" fill="#D97706" />
+                          {/* أشعة إشعاع الفكرة الذهبية */}
+                          <line x1="12" y1="-8" x2="12" y2="-3" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" />
+                          <line x1="-3" y1="2" x2="2" y2="5" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" />
+                          <line x1="27" y1="2" x2="22" y2="5" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" />
+                        </g>
+                      </svg>
+
+                      {/* زاوية أسفل اليسار: مجسم الدماغ وتروس التفكير المنطقي */}
+                      <svg viewBox="0 0 170 160" style={{ position: 'absolute', bottom: 0, left: 0, width: '170px', height: '160px', pointerEvents: 'none', zIndex: 1 }}>
+                        {/* دماغ التفكير والقدرات مع التروس */}
+                        <g transform="translate(25, 20)" stroke="#7C3AED" strokeWidth="2" fill="none">
+                          <path d="M 25,15 C 10,15 5,30 15,45 C 5,55 15,70 30,68 C 45,72 55,55 45,45 C 55,30 40,15 25,15 Z" fill="#EDE9FE" />
+                          {/* تروس المنطق والذكاء */}
+                          <circle cx="28" cy="42" r="7" stroke="#F59E0B" strokeWidth="2" />
+                          <path d="M 28,31 L 28,35 M 28,49 L 28,53 M 17,42 L 21,42 M 35,42 L 39,42" stroke="#F59E0B" strokeWidth="2" />
+                        </g>
+                        {/* طبقة ورق ممزق سفلية */}
+                        <path d="M 0,160 L 165,160 Q 130,125 90,118 L 45,125 L 0,85 Z" fill="#F59E0B" />
+                        <path d="M 0,160 L 155,160 L 150,150 L 140,145 L 132,152 L 120,142 L 110,148 L 98,135 L 85,142 L 72,130 L 60,135 L 45,120 L 30,126 L 15,105 L 0,110 Z" fill="#4C1D95" stroke="#FFFFFF" strokeWidth="1.5" />
+                      </svg>
+
+                      {/* زاوية أسفل اليمين: هدف وسهم الدقة (Target) مع مؤشر الصعود */}
+                      <svg viewBox="0 0 170 145" style={{ position: 'absolute', bottom: 0, right: 0, width: '170px', height: '145px', pointerEvents: 'none', zIndex: 1 }}>
+                        {/* هدف الدقة والسرعة (Target Bullseye) */}
+                        <g transform="translate(50, 15)">
+                          <circle cx="25" cy="25" r="22" fill="#FEF3C7" stroke="#F59E0B" strokeWidth="2" />
+                          <circle cx="25" cy="25" r="14" fill="#EDE9FE" stroke="#7C3AED" strokeWidth="2" />
+                          <circle cx="25" cy="25" r="6" fill="#EF4444" stroke="none" />
+                          {/* سهم إصابة الهدف بالمنتصف */}
+                          <path d="M 5,5 L 25,25" stroke="#4C1D95" strokeWidth="2.5" strokeLinecap="round" />
+                          <polyline points="20,12 25,25 12,20" fill="#4C1D95" />
+                        </g>
+                        {/* طبقة ورق ممزق */}
+                        <path d="M 170,145 L 0,145 Q 35,108 80,98 L 125,108 L 170,68 Z" fill="#F59E0B" />
+                        <path d="M 170,145 L 10,145 L 22,135 L 35,138 L 48,126 L 60,132 L 75,118 L 90,124 L 105,112 L 120,118 L 135,104 L 150,112 L 160,88 L 170,94 Z" fill="#4C1D95" stroke="#FFFFFF" strokeWidth="1.5" />
+                      </svg>
+                    </>
+                  ) : (
+                    /* القوالب الكلاسيكية الأخرى */
+                    <>
                       <svg
                         viewBox="0 0 800 750"
                         style={{
@@ -1212,32 +1392,14 @@ export default function App() {
                         </g>
                       </svg>
 
-                      {/* الموجات العلوية للقوالب الأخرى */}
-                      {t.waveType === 'modern' ? (
-                        <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '110px', pointerEvents: 'none' }} preserveAspectRatio="none">
-                          <path d="M 0,0 L 800,0 L 800,60 L 500,105 L 200,45 L 0,85 Z" fill={t.waveSub} opacity="0.65" />
-                          <path d="M 0,0 L 800,0 L 800,45 L 480,90 L 180,30 L 0,65 Z" fill={t.waveTop} />
-                        </svg>
-                      ) : t.waveType === 'leaf' ? (
-                        <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '110px', pointerEvents: 'none' }} preserveAspectRatio="none">
-                          <path d="M 0,0 L 800,0 L 800,75 Q 600,125 400,60 Q 200,5 0,80 Z" fill={t.waveSub} opacity="0.65" />
-                          <path d="M 0,0 L 800,0 L 800,55 Q 580,105 380,45 Q 180,0 0,60 Z" fill={t.waveTop} />
-                        </svg>
-                      ) : t.waveType === 'arch' ? (
-                        <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '110px', pointerEvents: 'none' }} preserveAspectRatio="none">
-                          <path d="M 0,0 L 800,0 L 800,85 Q 550,-10 320,85 Q 150,130 0,60 Z" fill={t.waveSub} opacity="0.75" />
-                          <path d="M 0,0 L 800,0 L 800,65 Q 530,-25 300,70 Q 140,110 0,45 Z" fill={t.waveTop} />
-                        </svg>
-                      ) : (
-                        <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '110px', pointerEvents: 'none' }} preserveAspectRatio="none">
-                          <path d="M 0,32 Q 210,-15 470,22 Q 650,120 800,88 L 800,0 L 0,0 Z" fill={t.waveSub} opacity="0.65" />
-                          <path d="M 0,24 Q 230,-18 480,15 Q 660,110 800,82 L 800,58 Q 660,85 490,0 L 0,0 Z" fill={t.waveTop} />
-                        </svg>
-                      )}
+                      <svg viewBox="0 0 800 135" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '110px', pointerEvents: 'none' }} preserveAspectRatio="none">
+                        <path d="M 0,32 Q 210,-15 470,22 Q 650,120 800,88 L 800,0 L 0,0 Z" fill={t.waveSub} opacity="0.65" />
+                        <path d="M 0,24 Q 230,-18 480,15 Q 660,110 800,82 L 800,58 Q 660,85 490,0 L 0,0 Z" fill={t.waveTop} />
+                      </svg>
                     </>
                   )}
 
-                  {/* الشعار - في مكانه السليم بدون أي تكرار */}
+                  {/* الشعار - في مكانه السليم دون أي تكرار */}
                   <div
                     style={{
                       position: 'relative',
@@ -1291,7 +1453,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* الصندوق الأبيض/الداكن للأسئلة والخيارات والربط */}
+                  {/* الصندوق للأسئلة والخيارات والربط */}
                   <div
                     style={{
                       position: 'relative',
@@ -1301,7 +1463,7 @@ export default function App() {
                       borderRadius: '24px',
                       padding: '40px 22px 18px',
                       boxSizing: 'border-box',
-                      boxShadow: t.isDark ? '0 8px 24px rgba(0,0,0,0.35)' : '0 4px 12px rgba(0,0,0,0.04)',
+                      boxShadow: t.isDark ? '0 8px 24px rgba(0,0,0,0.35)' : '0 4px 14px rgba(0,0,0,0.06)',
                     }}
                   >
                     {/* نص وصورة السؤال */}
@@ -1455,7 +1617,7 @@ export default function App() {
                     )}
                   </div>
 
-                  {/* الميديا أسفل الصندوق */}
+                  {/* الميديا أسفل الصندوق: بوردر متكيف بنقاء كامل */}
                   {hasMnemonicMedia && (
                     <div
                       style={{
