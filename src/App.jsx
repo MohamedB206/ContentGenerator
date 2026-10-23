@@ -73,7 +73,7 @@ export default function App() {
   const [rightAnswer, setRightAnswer] = useState('C');
   const [highlightCorrectAnswer, setHighlightCorrectAnswer] = useState(true);
 
-  // الربط الذهني مع شارة قابلة للتعديل أو الإخفاء
+  // الربط الذهني
   const [enableMnemonic, setEnableMnemonic] = useState(true);
   const [mnemonicLabel, setMnemonicLabel] = useState('ربط');
   const [mnemonicText, setMnemonicText] = useState('هو هرمون ذكري ف أخوك لما يشوفكم يقول تسترو (تستيستيرون)');
@@ -367,7 +367,6 @@ export default function App() {
   const t = themes[selectedTemplate] || themes.emerald;
   const arabicLabels = ['أ', 'ب', 'ج', 'د'];
 
-  // تحديد ما إذا كان القالب من القوالب المعدلة لوضع الشعار على اليسار حصراً
   const isLeftLogoTheme = ['navy', 'emerald', 'violet', 'torn_paper'].includes(t.waveType);
 
   const activeOptions = options.filter(
@@ -379,7 +378,7 @@ export default function App() {
   const hasMnemonicMedia = enableMnemonic && mnemonicMediaType !== 'none' && mnemonicMediaUrl;
   const isVideoMnemonic = enableMnemonic && mnemonicMediaType === 'video' && mnemonicMediaUrl;
 
-  // دالة رسم أي صورة على الـ Canvas بدقة وبدون تمدد أو تشويه
+  // دالة رسم أي صورة على الـ Canvas بدقة
   const renderFittedImage = (ctx, img, destX, destY, destW, destH, radius = 0) => {
     ctx.save();
     if (radius > 0) {
@@ -411,9 +410,8 @@ export default function App() {
     ctx.restore();
   };
 
-  // دالة بناء الـ Canvas المتكاملة التي تضمن وجود الشعار وكل الصور بدون حذف وبدون تكرار
+  // دالة بناء الـ Canvas المتكاملة
   const buildCardCanvas = async (cardEl) => {
-    // 1. التقاط إطار القالب الأساسي والنصوص (مع استثناء الصور الديناميكية لتجنب حظر سفاري)
     const basePngUrl = await toPng(cardEl, {
       pixelRatio: 2,
       cacheBust: false,
@@ -421,10 +419,10 @@ export default function App() {
     });
 
     const baseImg = new Image();
-    await new Promise((res, rej) => {
+    await new Promise((res) => {
       baseImg.onload = res;
-      baseImg.onerror = rej;
-      setTimeout(res, 2500);
+      baseImg.onerror = res;
+      setTimeout(res, 2000);
       baseImg.src = basePngUrl;
     });
 
@@ -433,10 +431,8 @@ export default function App() {
     canvas.height = baseImg.naturalHeight || 1350;
     const ctx = canvas.getContext('2d');
 
-    // رسم القالب والخلفية والنصوص
     ctx.drawImage(baseImg, 0, 0, canvas.width, canvas.height);
 
-    // 2. رسم الشعار وصور السؤال والخيارات والربط مباشرة وبدقة تامة فوق الـ Canvas
     const cardRect = cardEl.getBoundingClientRect();
     const scaleX = canvas.width / cardRect.width;
     const scaleY = canvas.height / cardRect.height;
@@ -454,6 +450,7 @@ export default function App() {
       await new Promise((res) => {
         loaded.onload = res;
         loaded.onerror = res;
+        setTimeout(res, 1000);
         loaded.src = imgEl.src;
       });
 
@@ -465,7 +462,7 @@ export default function App() {
     return canvas;
   };
 
-  // استخراج الصورة مع ضمان وجود الشعار والصور بدقة كاملة
+  // استخراج الصورة
   const handleExtractImage = async () => {
     if (!templateCardRef.current) return;
     setIsExporting(true);
@@ -492,7 +489,7 @@ export default function App() {
     }
   };
 
-  // استخراج الفيديو مدمجاً مع الشعار بدون أي نقص
+  // استخراج الفيديو مدمجاً بدون تعليق ومحمي ضد توقف الـ 28% في الآيفون
   const handleExtractFullVideo = async () => {
     const video = videoPlayerRef.current;
     const cardEl = templateCardRef.current;
@@ -502,22 +499,25 @@ export default function App() {
     }
 
     setIsExporting(true);
-    setExportProgress(8);
+    setExportProgress(5);
 
     try {
-      setExportProgress(20);
+      setExportProgress(15);
       const cardCanvas = await buildCardCanvas(cardEl);
 
+      setExportProgress(28);
       const cardImg = new Image();
       await new Promise((res) => {
         cardImg.onload = res;
+        cardImg.onerror = res;
+        setTimeout(res, 2000);
         cardImg.src = cardCanvas.toDataURL('image/png');
       });
 
-      setExportProgress(28);
+      setExportProgress(35);
       const canvas = document.createElement('canvas');
-      canvas.width = cardImg.naturalWidth;
-      canvas.height = cardImg.naturalHeight;
+      canvas.width = cardImg.naturalWidth || 1080;
+      canvas.height = cardImg.naturalHeight || 1350;
       const ctx = canvas.getContext('2d');
 
       ctx.drawImage(cardImg, 0, 0, canvas.width, canvas.height);
@@ -536,22 +536,22 @@ export default function App() {
       ctx.drawImage(video, destX, destY, destW, destH);
       ctx.restore();
 
-      const stream = canvas.captureStream(30);
-
-      let audioCtx = audioCtxRef.current;
-      if (!audioCtx) {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (AudioContextClass) {
-          audioCtx = new AudioContextClass();
-          audioCtxRef.current = audioCtx;
-        }
+      const stream = canvas.captureStream ? canvas.captureStream(30) : null;
+      if (!stream) {
+        throw new Error('متصفحك لا يدعم تسجيل الشاشة');
       }
 
-      if (audioCtx) {
-        if (audioCtx.state === 'suspended') {
-          try { await audioCtx.resume(); } catch (_) {}
-        }
-        try {
+      // مسار الصوت المتوافق مع iOS
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          if (!audioCtxRef.current) {
+            audioCtxRef.current = new AudioContextClass();
+          }
+          const audioCtx = audioCtxRef.current;
+          if (audioCtx.state === 'suspended') {
+            audioCtx.resume().catch(() => {});
+          }
           if (!sourceNodeRef.current) {
             sourceNodeRef.current = audioCtx.createMediaElementSource(video);
           }
@@ -559,75 +559,114 @@ export default function App() {
           sourceNodeRef.current.disconnect();
           sourceNodeRef.current.connect(destNode);
           sourceNodeRef.current.connect(audioCtx.destination);
+
           const audioTrack = destNode.stream.getAudioTracks()[0];
           if (audioTrack) {
             stream.addTrack(audioTrack);
           }
-        } catch (audioErr) {
-          console.warn('مسار الصوت:', audioErr);
         }
+      } catch (audioErr) {
+        console.warn('مسار الصوت:', audioErr);
       }
 
-      const mimeType = MediaRecorder.isTypeSupported('video/mp4;codecs=avc1')
-        ? 'video/mp4;codecs=avc1'
-        : MediaRecorder.isTypeSupported('video/mp4')
-        ? 'video/mp4'
-        : MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
-        ? 'video/webm;codecs=vp9'
-        : 'video/webm';
+      let options = {};
+      if (MediaRecorder.isTypeSupported('video/mp4;codecs=avc1')) {
+        options = { mimeType: 'video/mp4;codecs=avc1' };
+      } else if (MediaRecorder.isTypeSupported('video/mp4')) {
+        options = { mimeType: 'video/mp4' };
+      } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+        options = { mimeType: 'video/webm;codecs=vp9' };
+      } else if (MediaRecorder.isTypeSupported('video/webm')) {
+        options = { mimeType: 'video/webm' };
+      }
 
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType,
-        videoBitsPerSecond: 3500000,
-      });
-
+      const mediaRecorder = new MediaRecorder(stream, options);
       const chunks = [];
       mediaRecorder.ondataavailable = (e) => {
         if (e.data && e.data.size > 0) chunks.push(e.data);
       };
 
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks, { type: mimeType });
+      const totalDuration = video.duration && !isNaN(video.duration) ? video.duration : 10;
+      let animationFrameId = null;
+      let recordingStopped = false;
+
+      const finishRecording = () => {
+        if (recordingStopped) return;
+        recordingStopped = true;
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+
+        try {
+          if (mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+          }
+        } catch (_) {}
+      };
+
+      mediaRecorder.onstop = async () => {
+        const mime = options.mimeType || 'video/mp4';
+        const ext = mime.includes('mp4') ? 'mp4' : 'webm';
+        const blob = new Blob(chunks, { type: mime });
+        const fileName = `سؤال_عقدة_مدمج_${subject || 'تحصيلي'}_${Date.now()}.${ext}`;
+
+        // محاولة الحفظ المباشر في ألبوم صور الآيفون (Save Video)
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        if (isIOS && navigator.canShare) {
+          try {
+            const file = new File([blob], fileName, { type: mime });
+            if (navigator.canShare({ files: [file] })) {
+              await navigator.share({
+                files: [file],
+                title: 'سؤال أكاديمية عقدة',
+              });
+              setIsExporting(false);
+              setExportProgress(0);
+              video.pause();
+              video.currentTime = 0;
+              return;
+            }
+          } catch (shareErr) {
+            console.warn('Share API cancelled or fallback:', shareErr);
+          }
+        }
+
         const downloadUrl = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = downloadUrl;
-        const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
-        a.download = `سؤال_عقدة_مدمج_${subject || 'تحصيلي'}_${Date.now()}.${ext}`;
+        a.download = fileName;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
+
         setIsExporting(false);
         setExportProgress(0);
         video.pause();
         video.currentTime = 0;
       };
 
+      // تشغيل الفيديو بدون Await وكتمه في الواجهة لتفادي حظر الآيفون
       video.currentTime = 0;
-      video.muted = false;
+      video.muted = true;
+      video.play().catch(() => {});
 
       try {
-        await video.play();
-      } catch {
-        video.muted = true;
-        await video.play();
+        mediaRecorder.start(200);
+      } catch (recErr) {
+        mediaRecorder.start();
       }
 
-      mediaRecorder.start(250);
+      const startTime = performance.now();
 
-      const totalDuration = video.duration || 10;
-      let animationFrameId = null;
-
+      // حلقة رسم وحساب تقدم تعتمد على التوقيت الزمني الحقيقي لتفادي التعليق نهائياً
       const renderLoop = () => {
-        if (video.paused || video.ended || video.currentTime >= totalDuration) {
-          if (mediaRecorder.state === 'recording') {
-            mediaRecorder.stop();
-          }
-          if (animationFrameId) cancelAnimationFrame(animationFrameId);
-          return;
-        }
+        if (recordingStopped) return;
 
-        if (audioCtx && audioCtx.state === 'suspended') {
-          audioCtx.resume();
+        const elapsed = (performance.now() - startTime) / 1000;
+        const currentProgress = Math.min(99, Math.max(35, Math.round((elapsed / totalDuration) * 100)));
+        setExportProgress(currentProgress);
+
+        if (elapsed >= totalDuration || video.ended) {
+          finishRecording();
+          return;
         }
 
         ctx.drawImage(cardImg, 0, 0, canvas.width, canvas.height);
@@ -635,22 +674,14 @@ export default function App() {
         ctx.drawImage(video, destX, destY, destW, destH);
         ctx.restore();
 
-        const percent = Math.min(99, Math.max(30, Math.round((video.currentTime / totalDuration) * 100)));
-        setExportProgress(percent);
-
         animationFrameId = requestAnimationFrame(renderLoop);
       };
 
       animationFrameId = requestAnimationFrame(renderLoop);
-
-      video.onended = () => {
-        if (mediaRecorder.state === 'recording') {
-          mediaRecorder.stop();
-        }
-      };
+      video.onended = finishRecording;
     } catch (err) {
       console.error(err);
-      alert('تعذر استخراج الفيديو، يرجى المحاولة مرة أخرى');
+      alert('حدث خطأ أثناء تصدير الفيديو: ' + (err.message || 'يرجى المحاولة مجدداً'));
       setIsExporting(false);
       setExportProgress(0);
     }
@@ -697,7 +728,7 @@ export default function App() {
             <h3 className="text-base font-black">
               {isVideoMnemonic ? 'جاري استخراج القالب والمقطع معاً...' : 'جاري استخراج القالب...'}
             </h3>
-            <p className="text-xs text-slate-300">يتم تثبيت الشعار والصور بدقة فائقة</p>
+            <p className="text-xs text-slate-300">يتم إعداد القالب بدون أي تكرار وبأعلى دقة</p>
             {isVideoMnemonic && exportProgress > 0 && (
               <div className="w-full bg-slate-800 rounded-full h-3 overflow-hidden border border-slate-700">
                 <div
