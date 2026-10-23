@@ -73,9 +73,9 @@ export default function App() {
   const [rightAnswer, setRightAnswer] = useState('C');
   const [highlightCorrectAnswer, setHighlightCorrectAnswer] = useState(true);
 
-  // الربط الذهني مع كلمة شارة قابلة للتعديل أو الإخفاء
+  // الربط الذهني
   const [enableMnemonic, setEnableMnemonic] = useState(true);
-  const [mnemonicLabel, setMnemonicLabel] = useState('ربط'); // قابلة للتعديل أو المسح تماماً
+  const [mnemonicLabel, setMnemonicLabel] = useState('ربط');
   const [mnemonicText, setMnemonicText] = useState('هو هرمون ذكري ف أخوك لما يشوفكم يقول تسترو (تستيستيرون)');
   const [mnemonicMediaType, setMnemonicMediaType] = useState('video');
   const [mnemonicMediaUrl, setMnemonicMediaUrl] = useState(null);
@@ -100,6 +100,10 @@ export default function App() {
   const qImgRef = useRef(null);
   const videoPlayerRef = useRef(null);
 
+  // مراجع الصوت لمنع تعليق متصفح سفاري
+  const audioCtxRef = useRef(null);
+  const sourceNodeRef = useRef(null);
+
   // مداخل وسائط منفصلة
   const mnemonicImageInputRef = useRef(null);
   const mnemonicVideoInputRef = useRef(null);
@@ -109,6 +113,58 @@ export default function App() {
   const optCRef = useRef(null);
   const optDRef = useRef(null);
   const optImgRefs = { A: optARef, B: optBRef, C: optCRef, D: optDRef };
+
+  // دالة تصغير وضغط ذكية لأي صورة ترفع من الآيفون حتى لا تتجاوز حدود ذاكرة WebKit
+  const compressImage = (file, maxWidth = 900, maxHeight = 900, quality = 0.88) => {
+    return new Promise((resolve) => {
+      if (!file || !file.type.startsWith('image/')) {
+        resolve(null);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > maxWidth || height > maxHeight) {
+            if (width > height) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            } else {
+              width = Math.round((width * maxHeight) / height);
+              height = maxHeight;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/png', quality));
+        };
+        img.onerror = () => resolve(e.target?.result);
+        img.src = e.target?.result;
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileUpload = async (file, callback) => {
+    if (!file) return;
+    const compressed = await compressImage(file, 900, 900, 0.88);
+    if (compressed) callback(compressed);
+  };
+
+  const handleMnemonicMediaUpload = (file) => {
+    if (!file) return;
+    if (mnemonicMediaType === 'video') {
+      const url = URL.createObjectURL(file);
+      setMnemonicMediaUrl(url);
+    } else {
+      handleFileUpload(file, setMnemonicMediaUrl);
+    }
+  };
 
   // حساب الأبعاد بدقة للجوال
   useEffect(() => {
@@ -135,15 +191,6 @@ export default function App() {
       observer.disconnect();
     };
   }, [options, questionText, questionImage, mnemonicText, mnemonicLabel, mnemonicMediaUrl, mobileTab, selectedTemplate]);
-
-  const handleFileUpload = (file, callback) => {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      if (e.target?.result) callback(e.target.result);
-    };
-    reader.readAsDataURL(file);
-  };
 
   const updateOption = (id, patch) => {
     setOptions((prev) => prev.map((o) => (o.id === id ? { ...o, ...patch } : o)));
@@ -320,7 +367,6 @@ export default function App() {
   const t = themes[selectedTemplate] || themes.emerald;
   const arabicLabels = ['أ', 'ب', 'ج', 'د'];
 
-  // تحديد ما إذا كان القالب من القوالب المعدلة لوضع الشعار على اليسار حصراً
   const isLeftLogoTheme = ['navy', 'emerald', 'violet', 'torn_paper'].includes(t.waveType);
 
   const activeOptions = options.filter(
@@ -332,7 +378,7 @@ export default function App() {
   const hasMnemonicMedia = enableMnemonic && mnemonicMediaType !== 'none' && mnemonicMediaUrl;
   const isVideoMnemonic = enableMnemonic && mnemonicMediaType === 'video' && mnemonicMediaUrl;
 
-  // استخراج الصورة في خطوة واحدة نظيفة بدون تكرار
+  // استخراج الصورة في خطوة نظيفة واحدة بدون أي تكرار
   const handleExtractImage = async () => {
     if (!templateCardRef.current) return;
     setIsExporting(true);
@@ -361,7 +407,7 @@ export default function App() {
     }
   };
 
-  // استخراج الفيديو مدمجاً بدون تكرار الشعار مع تزامن كامل للصوت
+  // استخراج الفيديو مدمجاً بدون تعليق ومحمي ضد توقف الـ 1%
   const handleExtractFullVideo = async () => {
     const video = videoPlayerRef.current;
     const cardEl = templateCardRef.current;
@@ -371,23 +417,30 @@ export default function App() {
     }
 
     setIsExporting(true);
-    setExportProgress(1);
+    setExportProgress(5);
 
     try {
+      // 1. التقاط خلفية القالب
+      setExportProgress(12);
       const cardPngUrl = await toPng(cardEl, {
         pixelRatio: 2,
         cacheBust: false,
       });
 
+      setExportProgress(20);
       const cardImg = new Image();
-      await new Promise((res) => {
+      await new Promise((res, rej) => {
         cardImg.onload = res;
+        cardImg.onerror = rej;
+        // صمام أمان حتى لا يعلق المتصفح أبداً
+        setTimeout(res, 2000);
         cardImg.src = cardPngUrl;
       });
 
+      setExportProgress(25);
       const canvas = document.createElement('canvas');
-      canvas.width = cardImg.naturalWidth;
-      canvas.height = cardImg.naturalHeight;
+      canvas.width = cardImg.naturalWidth || 1080;
+      canvas.height = cardImg.naturalHeight || 1350;
       const ctx = canvas.getContext('2d');
 
       ctx.drawImage(cardImg, 0, 0, canvas.width, canvas.height);
@@ -408,25 +461,35 @@ export default function App() {
 
       const stream = canvas.captureStream(30);
 
-      let audioCtx = null;
-      try {
+      // إعادة تدوير الـ AudioContext والـ SourceNode لمنع خطأ الآيفون
+      let audioCtx = audioCtxRef.current;
+      if (!audioCtx) {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         if (AudioContextClass) {
           audioCtx = new AudioContextClass();
-          if (audioCtx.state === 'suspended') {
-            await audioCtx.resume();
+          audioCtxRef.current = audioCtx;
+        }
+      }
+
+      if (audioCtx) {
+        if (audioCtx.state === 'suspended') {
+          try { await audioCtx.resume(); } catch (_) {}
+        }
+        try {
+          if (!sourceNodeRef.current) {
+            sourceNodeRef.current = audioCtx.createMediaElementSource(video);
           }
-          const sourceNode = audioCtx.createMediaElementSource(video);
           const destNode = audioCtx.createMediaStreamDestination();
-          sourceNode.connect(destNode);
-          sourceNode.connect(audioCtx.destination);
+          sourceNodeRef.current.disconnect();
+          sourceNodeRef.current.connect(destNode);
+          sourceNodeRef.current.connect(audioCtx.destination);
           const audioTrack = destNode.stream.getAudioTracks()[0];
           if (audioTrack) {
             stream.addTrack(audioTrack);
           }
+        } catch (audioErr) {
+          console.warn('تنبيه مسار الصوت:', audioErr);
         }
-      } catch (audioErr) {
-        console.warn('تنبيه مسار الصوت:', audioErr);
       }
 
       const mimeType = MediaRecorder.isTypeSupported('video/mp4;codecs=avc1')
@@ -439,7 +502,7 @@ export default function App() {
 
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType,
-        videoBitsPerSecond: 4000000,
+        videoBitsPerSecond: 3500000,
       });
 
       const chunks = [];
@@ -454,18 +517,27 @@ export default function App() {
         a.href = downloadUrl;
         const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
         a.download = `سؤال_عقدة_مدمج_${subject || 'تحصيلي'}_${Date.now()}.${ext}`;
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
         setIsExporting(false);
         setExportProgress(0);
         video.pause();
         video.currentTime = 0;
-        if (audioCtx && audioCtx.state !== 'closed') {
-          try { audioCtx.close(); } catch (_) {}
-        }
       };
 
       video.currentTime = 0;
       video.muted = false;
+
+      try {
+        await video.play();
+      } catch {
+        video.muted = true;
+        await video.play();
+      }
+
+      // بدء التسجيل فورياً دون تأخير
+      mediaRecorder.start(250);
 
       const totalDuration = video.duration || 10;
       let animationFrameId = null;
@@ -488,25 +560,14 @@ export default function App() {
         ctx.drawImage(video, destX, destY, destW, destH);
         ctx.restore();
 
-        const percent = Math.min(99, Math.round((video.currentTime / totalDuration) * 100));
+        // تحديث النسبة المئوية فورياً بدون توقف
+        const percent = Math.min(99, Math.max(25, Math.round((video.currentTime / totalDuration) * 100)));
         setExportProgress(percent);
 
         animationFrameId = requestAnimationFrame(renderLoop);
       };
 
-      video.onplaying = () => {
-        if (mediaRecorder.state !== 'recording') {
-          mediaRecorder.start(250);
-        }
-        animationFrameId = requestAnimationFrame(renderLoop);
-      };
-
-      try {
-        await video.play();
-      } catch {
-        video.muted = true;
-        await video.play();
-      }
+      animationFrameId = requestAnimationFrame(renderLoop);
 
       video.onended = () => {
         if (mediaRecorder.state === 'recording') {
@@ -606,7 +667,7 @@ export default function App() {
                   صانع القوالب الذكي
                 </span>
               </div>
-              <p className="text-[10px] sm:text-xs text-slate-500 truncate">شارة ربط وشرح قابلة للتعديل والإخفاء</p>
+              <p className="text-[10px] sm:text-xs text-slate-500 truncate">معالجة فورية وتصدير سريع للآيفون</p>
             </div>
           </div>
 
@@ -926,7 +987,6 @@ export default function App() {
 
               {enableMnemonic && (
                 <div className="p-3 sm:p-3.5 rounded-xl bg-rose-50/50 border border-rose-200 space-y-3">
-                  {/* تعديل أو حذف كلمة الشارة (مثل ربط، فكرة، تلميح...) */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <label className="text-[11px] font-bold text-slate-700">كلمة الشارة (اتركها فارغة لإخفائها):</label>
@@ -959,7 +1019,6 @@ export default function App() {
                       />
                     </div>
 
-                    {/* خيارات سريعة بنقرة واحدة */}
                     <div className="flex flex-wrap items-center gap-1.5 pt-1">
                       <span className="text-[10px] text-slate-500 font-bold">خيارات سريعة:</span>
                       {['ربط', 'فكرة', 'تلميح', 'توضيح', 'قانون', ''].map((tag) => (
@@ -979,7 +1038,6 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* نص جملة الربط / الشرح */}
                   <div>
                     <label className="text-[11px] font-bold text-slate-700 block mb-1">نص جملة الربط / الشرح:</label>
                     <input
@@ -1180,7 +1238,7 @@ export default function App() {
                         <polygon points="90,122 105,142 98,126" fill="#FF7A1A" />
                       </svg>
 
-                      {/* زاوية أعلى اليمين الأصلية مع رقعة الورق وعلامة الاستفهام 3D والسهم والأشعة */}
+                      {/* زاوية أعلى اليمين مع علامة الاستفهام 3D */}
                       <svg viewBox="0 0 160 170" style={{ position: 'absolute', top: 0, right: 0, width: '160px', height: '170px', pointerEvents: 'none', zIndex: 1 }}>
                         <polygon points="32,70 10,75 18,84" fill="#FF7A1A" />
                         <polygon points="40,88 15,100 28,108" fill="#FF7A1A" />
@@ -1199,7 +1257,7 @@ export default function App() {
                         <polyline points="138,140 146,141 148,150" fill="none" stroke="#FF7A1A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
 
-                      {/* زاوية أسفل اليسار: شخبطة لولبية + مصفوفة نقاط بنفسجية + ورق ممزق */}
+                      {/* زاوية أسفل اليسار */}
                       <svg viewBox="0 0 170 160" style={{ position: 'absolute', bottom: 0, left: 0, width: '170px', height: '160px', pointerEvents: 'none', zIndex: 1 }}>
                         <g fill="#6C44D6" opacity="0.85">
                           <circle cx="20" cy="25" r="3.2" />
@@ -1241,9 +1299,8 @@ export default function App() {
                       </svg>
                     </>
                   ) : t.waveType === 'emerald' ? (
-                    /* قالب المينت الأكاديمي (أحياء وكيمياء): قصاصات ورق ممزقة + دورق كيميائي، حمض نووي، مجهر، وحلقات بنزين */
+                    /* قالب المينت الأكاديمي (أحياء وكيمياء) */
                     <>
-                      {/* زاوية أعلى اليسار */}
                       <svg viewBox="0 0 170 145" style={{ position: 'absolute', top: 0, left: 0, width: '170px', height: '145px', pointerEvents: 'none', zIndex: 1 }}>
                         <path d="M 0,0 L 145,0 Q 120,35 90,70 L 50,110 L 0,135 Z" fill="#10B981" />
                         <path d="M 0,0 L 135,0 L 130,12 L 122,16 L 124,26 L 115,32 L 118,42 L 105,50 L 108,58 L 95,66 L 90,78 L 75,85 L 72,96 L 55,104 L 50,115 L 32,122 L 25,130 L 0,125 Z" fill="#064E3B" stroke="#FFFFFF" strokeWidth="1.5" />
@@ -1252,7 +1309,6 @@ export default function App() {
                         <circle cx="98" cy="108" r="3.5" fill="#10B981" />
                       </svg>
 
-                      {/* زاوية أعلى اليمين: رقعة ورق ممزق + شريط الحمض النووي (DNA) */}
                       <svg viewBox="0 0 160 160" style={{ position: 'absolute', top: 0, right: 0, width: '160px', height: '160px', pointerEvents: 'none', zIndex: 1 }}>
                         <path d="M 50,0 L 160,0 L 160,130 Q 115,115 70,95 L 45,55 Z" fill="#10B981" />
                         <path d="M 60,0 L 160,0 L 160,120 L 148,118 L 142,126 L 130,116 L 120,122 L 108,112 L 95,116 L 85,102 L 72,106 L 65,88 L 58,65 L 50,40 L 60,20 Z" fill="#064E3B" stroke="#FFFFFF" strokeWidth="1.5" />
@@ -1268,7 +1324,6 @@ export default function App() {
                         </g>
                       </svg>
 
-                      {/* زاوية أسفل اليسار: دورق كيميائي مخروطي مع فقاعات + حلقات بنزين */}
                       <svg viewBox="0 0 170 160" style={{ position: 'absolute', bottom: 0, left: 0, width: '170px', height: '160px', pointerEvents: 'none', zIndex: 1 }}>
                         <g transform="translate(15, 20)">
                           <path d="M 28,15 L 28,28 L 10,65 A 6,6 0 0,0 16,74 L 54,74 A 6,6 0 0,0 60,65 L 42,28 L 42,15 Z" fill="#D1FAE5" stroke="#059669" strokeWidth="2.5" />
@@ -1285,7 +1340,6 @@ export default function App() {
                         <path d="M 0,160 L 150,160 L 145,150 L 135,144 L 126,150 L 115,140 L 104,146 L 90,132 L 78,138 L 65,126 L 50,130 L 35,116 L 20,122 L 0,105 Z" fill="#064E3B" stroke="#FFFFFF" strokeWidth="1.5" />
                       </svg>
 
-                      {/* زاوية أسفل اليمين: أنبوب اختبار */}
                       <svg viewBox="0 0 170 145" style={{ position: 'absolute', bottom: 0, right: 0, width: '170px', height: '145px', pointerEvents: 'none', zIndex: 1 }}>
                         <g transform="translate(45, 15) rotate(35)">
                           <rect x="0" y="0" width="14" height="42" rx="7" fill="#D1FAE5" stroke="#059669" strokeWidth="2" />
@@ -1298,9 +1352,8 @@ export default function App() {
                       </svg>
                     </>
                   ) : t.waveType === 'navy' ? (
-                    /* قالب الفيزياء والرياضيات (التحصيلي الملكي): قصاصات ورق ممزقة + مجسم الذرة، المغناطيس، والتكاملات */
+                    /* قالب الفيزياء والرياضيات */
                     <>
-                      {/* زاوية أعلى اليسار */}
                       <svg viewBox="0 0 170 145" style={{ position: 'absolute', top: 0, left: 0, width: '170px', height: '145px', pointerEvents: 'none', zIndex: 1 }}>
                         <path d="M 0,0 L 140,0 Q 120,35 90,68 L 52,108 L 0,132 Z" fill="#0284C7" />
                         <path d="M 0,0 L 130,0 L 126,10 L 120,14 L 122,24 L 115,30 L 117,38 L 108,46 L 110,54 L 98,62 L 95,72 L 80,80 L 78,90 L 62,98 L 58,108 L 40,116 L 35,124 L 18,128 L 0,122 Z" fill="#0F2744" stroke="#FFFFFF" strokeWidth="1.5" />
@@ -1308,7 +1361,6 @@ export default function App() {
                         <text x="125" y="85" fontFamily="serif" fontSize="20" fill="#38BDF8" fontWeight="bold">∫</text>
                       </svg>
 
-                      {/* زاوية أعلى اليمين: مجسم الذرة بمداراتها الإلكترونية */}
                       <svg viewBox="0 0 160 160" style={{ position: 'absolute', top: 0, right: 0, width: '160px', height: '160px', pointerEvents: 'none', zIndex: 1 }}>
                         <path d="M 45,0 L 160,0 L 160,135 Q 120,120 75,100 L 55,60 Z" fill="#0284C7" />
                         <path d="M 55,0 L 160,0 L 160,125 L 148,122 L 140,130 L 130,120 L 120,125 L 110,115 L 98,118 L 88,105 L 75,110 L 68,95 L 62,70 L 52,45 L 60,25 Z" fill="#0F2744" stroke="#FFFFFF" strokeWidth="1.5" />
@@ -1322,7 +1374,6 @@ export default function App() {
                         </g>
                       </svg>
 
-                      {/* زاوية أسفل اليسار: مغناطيس حدوة الحصان + قوانين الفيزياء */}
                       <svg viewBox="0 0 170 160" style={{ position: 'absolute', bottom: 0, left: 0, width: '170px', height: '160px', pointerEvents: 'none', zIndex: 1 }}>
                         <g transform="translate(30, 25)">
                           <path d="M 12,55 L 12,24 A 20,20 0 0,1 52,24 L 52,55 L 40,55 L 40,24 A 8,8 0 0,0 24,24 L 24,55 Z" fill="#E2E8F0" stroke="#0F2744" strokeWidth="2" />
@@ -1337,7 +1388,6 @@ export default function App() {
                         <path d="M 0,160 L 155,160 L 150,150 L 140,145 L 132,152 L 120,142 L 110,148 L 98,135 L 85,142 L 72,130 L 60,135 L 45,120 L 30,126 L 15,105 L 0,110 Z" fill="#0F2744" stroke="#FFFFFF" strokeWidth="1.5" />
                       </svg>
 
-                      {/* زاوية أسفل اليمين: مثلث نظرية فيثاغورس */}
                       <svg viewBox="0 0 170 145" style={{ position: 'absolute', bottom: 0, right: 0, width: '170px', height: '145px', pointerEvents: 'none', zIndex: 1 }}>
                         <polygon points="50,60 110,60 110,15" fill="none" stroke="#0284C7" strokeWidth="2" />
                         <text x="75" y="75" fontSize="10" fill="#0F2744" fontWeight="bold">a² + b² = c²</text>
@@ -1346,9 +1396,8 @@ export default function App() {
                       </svg>
                     </>
                   ) : t.waveType === 'violet' ? (
-                    /* قالب القدرات والتفكير الشامل (البنفسجي الإبداعي): قصاصات ورق ممزقة + دماغ بالتروس، مصباح الفكرة، هدف وسهم 100% */
+                    /* قالب القدرات والتفكير */
                     <>
-                      {/* زاوية أعلى اليسار */}
                       <svg viewBox="0 0 170 145" style={{ position: 'absolute', top: 0, left: 0, width: '170px', height: '145px', pointerEvents: 'none', zIndex: 1 }}>
                         <path d="M 0,0 L 140,0 Q 120,35 90,68 L 52,108 L 0,132 Z" fill="#F59E0B" />
                         <path d="M 0,0 L 130,0 L 126,10 L 120,14 L 122,24 L 115,30 L 117,38 L 108,46 L 110,54 L 98,62 L 95,72 L 80,80 L 78,90 L 62,98 L 58,108 L 40,116 L 35,124 L 18,128 L 0,122 Z" fill="#4C1D95" stroke="#FFFFFF" strokeWidth="1.5" />
@@ -1356,7 +1405,6 @@ export default function App() {
                         <text x="125" y="85" fontFamily="sans-serif" fontSize="16" fill="#8B5CF6" fontWeight="bold">100%</text>
                       </svg>
 
-                      {/* زاوية أعلى اليمين: مصباح الفكرة والإبداع */}
                       <svg viewBox="0 0 160 160" style={{ position: 'absolute', top: 0, right: 0, width: '160px', height: '160px', pointerEvents: 'none', zIndex: 1 }}>
                         <path d="M 45,0 L 160,0 L 160,135 Q 120,120 75,100 L 55,60 Z" fill="#F59E0B" />
                         <path d="M 55,0 L 160,0 L 160,125 L 148,122 L 140,130 L 130,120 L 120,125 L 110,115 L 98,118 L 88,105 L 75,110 L 68,95 L 62,70 L 52,45 L 60,25 Z" fill="#4C1D95" stroke="#FFFFFF" strokeWidth="1.5" />
@@ -1369,7 +1417,6 @@ export default function App() {
                         </g>
                       </svg>
 
-                      {/* زاوية أسفل اليسار: مجسم الدماغ وتروس التفكير */}
                       <svg viewBox="0 0 170 160" style={{ position: 'absolute', bottom: 0, left: 0, width: '170px', height: '160px', pointerEvents: 'none', zIndex: 1 }}>
                         <g transform="translate(25, 20)" stroke="#7C3AED" strokeWidth="2" fill="none">
                           <path d="M 25,15 C 10,15 5,30 15,45 C 5,55 15,70 30,68 C 45,72 55,55 45,45 C 55,30 40,15 25,15 Z" fill="#EDE9FE" />
@@ -1380,7 +1427,6 @@ export default function App() {
                         <path d="M 0,160 L 155,160 L 150,150 L 140,145 L 132,152 L 120,142 L 110,148 L 98,135 L 85,142 L 72,130 L 60,135 L 45,120 L 30,126 L 15,105 L 0,110 Z" fill="#4C1D95" stroke="#FFFFFF" strokeWidth="1.5" />
                       </svg>
 
-                      {/* زاوية أسفل اليمين: هدف وسهم الدقة */}
                       <svg viewBox="0 0 170 145" style={{ position: 'absolute', bottom: 0, right: 0, width: '170px', height: '145px', pointerEvents: 'none', zIndex: 1 }}>
                         <g transform="translate(50, 15)">
                           <circle cx="25" cy="25" r="22" fill="#FEF3C7" stroke="#F59E0B" strokeWidth="2" />
@@ -1431,7 +1477,7 @@ export default function App() {
                     </>
                   )}
 
-                  {/* الشعار: يظهر على اليسار في القوالب المعدلة فقط، وعلى اليمين في القوالب الكلاسيكية */}
+                  {/* الشعار: على اليسار للقوالب المعدلة، وعلى اليمين للقوالب الكلاسيكية */}
                   <div
                     style={{
                       position: 'relative',
@@ -1608,7 +1654,7 @@ export default function App() {
                       </div>
                     )}
 
-                    {/* جملة الربط والشرح الذهني مع شارة قابلة للتعديل أو الإخفاء في جميع القوالب */}
+                    {/* جملة الربط الذهني مع شارة قابلة للتعديل والإخفاء */}
                     {hasMnemonicText && (
                       <div
                         style={{
@@ -1621,7 +1667,6 @@ export default function App() {
                           gap: '8px',
                         }}
                       >
-                        {/* الشارة تظهر فقط إذا كتب المستخدم نصاً بداخلها وتختفي تماماً إذا كانت فارغة */}
                         {mnemonicLabel && mnemonicLabel.trim() !== '' && (
                           <span
                             style={{
