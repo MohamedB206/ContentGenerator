@@ -108,7 +108,7 @@ export default function App() {
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
 
-  // معاينة الصورة والفيديو المستخرج للآيفون لحفظهما بضغطة واحدة
+  // معاينة الصورة والفيديو المستخرج
   const [extractedPreviewImage, setExtractedPreviewImage] = useState(null);
   const [extractedPreviewVideo, setExtractedPreviewVideo] = useState(null);
 
@@ -125,6 +125,7 @@ export default function App() {
   // مراجع مسار الصوت
   const audioCtxRef = useRef(null);
   const sourceNodeRef = useRef(null);
+  const gainNodeRef = useRef(null);
 
   // مداخل وسائط منفصلة
   const mnemonicImageInputRef = useRef(null);
@@ -407,7 +408,6 @@ export default function App() {
   const t = themes[selectedTemplate] || themes.emerald;
   const arabicLabels = ['أ', 'ب', 'ج', 'د'];
 
-  // الشعار على اليسار في القوالب المعدلة فقط
   const isLeftLogoTheme = ['navy', 'emerald', 'violet', 'torn_paper'].includes(t.waveType);
 
   const activeOptions = options.filter(
@@ -528,7 +528,7 @@ export default function App() {
     }
   };
 
-  // استخراج الفيديو مدمجاً بدون تعليق نهائياً ومحمي ضد التوقف عند 100%
+  // استخراج الفيديو مدمجاً مع الصوت في سفاري وكروم
   const handleExtractFullVideo = async () => {
     const video = videoPlayerRef.current;
     const cardEl = templateCardRef.current;
@@ -580,7 +580,7 @@ export default function App() {
         throw new Error('متصفحك لا يدعم تسجيل الشاشة');
       }
 
-      // مسار الصوت المتوافق مع iOS
+      // مسار الصوت النقي: غير مكتوم ويسحب الصوت بنقاء كامل في سفاري وكروم
       try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         if (AudioContextClass) {
@@ -591,13 +591,25 @@ export default function App() {
           if (audioCtx.state === 'suspended') {
             audioCtx.resume().catch(() => {});
           }
+
           if (!sourceNodeRef.current) {
             sourceNodeRef.current = audioCtx.createMediaElementSource(video);
           }
+
+          if (!gainNodeRef.current) {
+            gainNodeRef.current = audioCtx.createGain();
+          }
+
           const destNode = audioCtx.createMediaStreamDestination();
           sourceNodeRef.current.disconnect();
+
+          // توجيه الصوت مباشرة للتسجيل
           sourceNodeRef.current.connect(destNode);
-          sourceNodeRef.current.connect(audioCtx.destination);
+
+          // كتم السماعة الخارجية فقط عبر الـ Gain لتفادي كتم سفاري للصوت المسجل
+          sourceNodeRef.current.connect(gainNodeRef.current);
+          gainNodeRef.current.gain.value = 0;
+          gainNodeRef.current.connect(audioCtx.destination);
 
           const audioTrack = destNode.stream.getAudioTracks()[0];
           if (audioTrack) {
@@ -608,13 +620,14 @@ export default function App() {
         console.warn('مسار الصوت:', audioErr);
       }
 
+      // اختيار الكوديك المناسب لسفاري وكروم
       let options = {};
-      if (MediaRecorder.isTypeSupported('video/mp4;codecs=avc1')) {
-        options = { mimeType: 'video/mp4;codecs=avc1' };
+      if (MediaRecorder.isTypeSupported('video/mp4;codecs=avc1,mp4a.40.2')) {
+        options = { mimeType: 'video/mp4;codecs=avc1,mp4a.40.2' };
       } else if (MediaRecorder.isTypeSupported('video/mp4')) {
         options = { mimeType: 'video/mp4' };
-      } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
-        options = { mimeType: 'video/webm;codecs=vp9' };
+      } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')) {
+        options = { mimeType: 'video/webm;codecs=vp9,opus' };
       } else if (MediaRecorder.isTypeSupported('video/webm')) {
         options = { mimeType: 'video/webm' };
       }
@@ -630,7 +643,6 @@ export default function App() {
       let recordingStopped = false;
       let stopTriggered = false;
 
-      // دالة إنهاء التسجيل الآمنة والسريعة لحل مشكلة 100%
       const processCompletedVideo = () => {
         if (stopTriggered) return;
         stopTriggered = true;
@@ -646,11 +658,11 @@ export default function App() {
         video.pause();
         video.currentTime = 0;
 
-        // إيقاف مسار البث بعد تجميع الـ Blob
         try {
           stream.getTracks().forEach((track) => track.stop());
         } catch (_) {}
 
+        // فتح نافذة المعاينة مع خيارات الحفظ الفوري
         setExtractedPreviewVideo({
           url: downloadUrl,
           blob,
@@ -658,15 +670,19 @@ export default function App() {
           mime,
         });
 
-        // تنزيل مباشر لأجهزة الأندرويد والكمبيوتر
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-        if (!isIOS) {
+        // تنزيل فوري متوافق مع كروم والكمبيوتر والأندرويد
+        try {
           const a = document.createElement('a');
+          a.style.display = 'none';
           a.href = downloadUrl;
           a.download = fileName;
           document.body.appendChild(a);
           a.click();
-          document.body.removeChild(a);
+          setTimeout(() => {
+            document.body.removeChild(a);
+          }, 100);
+        } catch (downloadErr) {
+          console.warn('Auto download fallback:', downloadErr);
         }
       };
 
@@ -683,7 +699,6 @@ export default function App() {
           }
         } catch (_) {}
 
-        // صمام أمان قاطع: إذا تأخر المتصفح عن إطلاق onstop يتم المعالجة بعد ثانية واحدة فوراً
         setTimeout(() => {
           processCompletedVideo();
         }, 1000);
@@ -694,8 +709,12 @@ export default function App() {
       };
 
       video.currentTime = 0;
-      video.muted = true;
-      video.play().catch(() => {});
+      // عدم كتم الفيديو الأصلي حتى لا يقطع سفاري الصوت
+      video.muted = false;
+      video.play().catch(() => {
+        video.muted = true;
+        video.play().catch(() => {});
+      });
 
       try {
         mediaRecorder.start(200);
@@ -735,7 +754,7 @@ export default function App() {
     }
   };
 
-  // دالة الحفظ المباشر في ألبوم صور الآيفون بنقرة יד حقيقية
+  // دالة الحفظ في الصور للآيفون (Share Sheet)
   const handleSaveVideoToIOS = async () => {
     if (!extractedPreviewVideo) return;
     try {
@@ -750,15 +769,29 @@ export default function App() {
     } catch (e) {
       console.warn('Share API fallback:', e);
     }
-    window.open(extractedPreviewVideo.url, '_blank');
+    // في حال كروم أو تعذر المشاركة نفتح رابط التحميل المباشر
+    handleDirectDownloadVideo();
+  };
+
+  // دالة التحميل المباشر المتوافقة مع كروم وكل المتصفحات
+  const handleDirectDownloadVideo = () => {
+    if (!extractedPreviewVideo) return;
+    const a = document.createElement('a');
+    a.href = extractedPreviewVideo.url;
+    a.download = extractedPreviewVideo.fileName;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+    }, 100);
   };
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#F4F6F9] text-slate-900 flex flex-col font-sans">
-      {/* نافذة معاينة وحفظ الفيديو للآيفون لحفظه مباشرة في ألبوم الصور */}
+      {/* نافذة معاينة وحفظ الفيديو مع خيارات الحفظ والتحميل لكروم وسفاري */}
       {extractedPreviewVideo && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-5 space-y-4 shadow-2xl text-center">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-5 space-y-3.5 shadow-2xl text-center">
             <div className="flex items-center justify-between pb-2 border-b">
               <span className="text-sm font-black text-slate-900">تم استخراج الفيديو بنجاح 🎬</span>
               <button
@@ -770,20 +803,21 @@ export default function App() {
               </button>
             </div>
 
-            <div className="max-h-[50vh] overflow-hidden rounded-2xl border border-slate-200 bg-black">
+            <div className="max-h-[46vh] overflow-hidden rounded-2xl border border-slate-200 bg-black">
               <video
                 src={extractedPreviewVideo.url}
                 controls
                 playsInline
                 autoPlay
-                className="w-full h-auto block max-h-[50vh] mx-auto object-contain"
+                className="w-full h-auto block max-h-[46vh] mx-auto object-contain"
               />
             </div>
 
+            {/* زر حفظ في الصور للآيفون */}
             <button
               type="button"
               onClick={handleSaveVideoToIOS}
-              className="w-full py-3 bg-[#D65261] hover:bg-[#B83746] text-white rounded-xl text-xs font-black cursor-pointer shadow-md flex items-center justify-center gap-2"
+              className="w-full py-2.5 bg-[#D65261] hover:bg-[#B83746] text-white rounded-xl text-xs font-black cursor-pointer shadow-md flex items-center justify-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -791,10 +825,22 @@ export default function App() {
               <span>حفظ الفيديو في الصور (Save Video) 📲</span>
             </button>
 
+            {/* زر تحميل مباشر يعمل 100% في قوقل كروم */}
+            <button
+              type="button"
+              onClick={handleDirectDownloadVideo}
+              className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-black cursor-pointer shadow-sm flex items-center justify-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v12m0 0l-4-4m4 4l4-4m-8 8h8" />
+              </svg>
+              <span>تنزيل ملف الفيديو مباشرة (كروم / كمبيوتر) ⬇️</span>
+            </button>
+
             <button
               type="button"
               onClick={() => setExtractedPreviewVideo(null)}
-              className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-black cursor-pointer"
+              className="w-full py-1.5 text-slate-500 hover:text-slate-800 text-xs font-bold cursor-pointer"
             >
               إغلاق
             </button>
@@ -839,9 +885,9 @@ export default function App() {
           <div className="bg-slate-900 border border-slate-700 p-6 rounded-2xl max-w-sm w-full text-center space-y-4 shadow-2xl">
             <div className="w-12 h-12 border-4 border-[#D65261] border-t-transparent rounded-full animate-spin mx-auto"></div>
             <h3 className="text-base font-black">
-              {isVideoMnemonic ? 'جاري استخراج القالب والمقطع معاً...' : 'جاري استخراج القالب...'}
+              {isVideoMnemonic ? 'جاري دمج الفيديو مع الصوت...' : 'جاري استخراج القالب...'}
             </h3>
-            <p className="text-xs text-slate-300">يتم إعداد القالب بدون أي تكرار وبأعلى دقة</p>
+            <p className="text-xs text-slate-300">يتم تسجيل الصوت والمقطع وتجهيز التنزيل لجميع المتصفحات</p>
             {isVideoMnemonic && exportProgress > 0 && (
               <div className="w-full bg-slate-800 rounded-full h-3 overflow-hidden border border-slate-700">
                 <div
@@ -892,7 +938,7 @@ export default function App() {
                   حفظ تلقائي مفعّل
                 </span>
               </div>
-              <p className="text-[10px] sm:text-xs text-slate-500 truncate">تصدير فيديو متكامل للآيفون</p>
+              <p className="text-[10px] sm:text-xs text-slate-500 truncate">تصدير فيديو بصوت نقي وتنزيل فوري</p>
             </div>
           </div>
 
@@ -1202,7 +1248,7 @@ export default function App() {
 
             <hr className="border-slate-100" />
 
-            {/* 4. الربط الذهني مع شارة قابلة للتعديل أو الحذف */}
+            {/* 4. الربط الذهني */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div>
@@ -1401,7 +1447,7 @@ export default function App() {
               : 'fixed -left-[9999px] top-0 opacity-0 pointer-events-none lg:relative lg:left-0 lg:opacity-100 lg:pointer-events-auto lg:block'
           }`}
         >
-          {/* اختيار الثيمات السبعة */}
+          {/* اختيار الثيمات */}
           <div className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-4 shadow-sm space-y-2.5">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black text-slate-800">اختر ثيم القالب:</span>
@@ -1467,7 +1513,7 @@ export default function App() {
                     border: `1.5px solid ${t.border}22`,
                   }}
                 >
-                  {/* عناصر الجرافيك لقالب الورق الممزق والكولاج (Torn Paper Theme) */}
+                  {/* عناصر الجرافيك لقالب الورق الممزق والكولاج */}
                   {t.waveType === 'torn_paper' ? (
                     <>
                       {/* زاوية أعلى اليسار */}
@@ -1498,7 +1544,7 @@ export default function App() {
                         <polyline points="138,140 146,141 148,150" fill="none" stroke="#FF7A1A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
 
-                      {/* زاوية أسفل اليسار: شخبطة لولبية + مصفوفة نقاط بنفسجية + ورق ممزق */}
+                      {/* زاوية أسفل اليسار */}
                       <svg viewBox="0 0 170 160" style={{ position: 'absolute', bottom: 0, left: 0, width: '170px', height: '160px', pointerEvents: 'none', zIndex: 1 }}>
                         <g fill="#6C44D6" opacity="0.85">
                           <circle cx="20" cy="25" r="3.2" />
@@ -1522,8 +1568,7 @@ export default function App() {
                       <svg viewBox="0 0 170 140" style={{ position: 'absolute', bottom: 0, right: 0, width: '170px', height: '140px', pointerEvents: 'none', zIndex: 1 }}>
                         <polygon points="50,90 28,100 38,108" fill="#FF7A1A" />
                         <polygon points="68,70 48,82 58,90" fill="#FF7A1A" />
-
-                        <path d="M 170,140 L 0,140 Q 35,105 80,95 L 125,105 L 170,65 Z" fill="#FF7A1A" />
+                        <path d="M 170,140 L 0,140 Q 35,105 80,95 L 125,105 L 170,68 Z" fill="#FF7A1A" />
                         <path d="M 170,140 L 10,140 L 22,130 L 35,134 L 48,122 L 60,128 L 75,115 L 90,120 L 105,108 L 120,115 L 135,100 L 150,108 L 160,85 L 170,90 Z" fill="#7548DC" stroke="#FFFFFF" strokeWidth="1.5" />
                       </svg>
 
