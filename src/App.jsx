@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { toPng } from 'html-to-image';
 
-// دوال مساعدة للتعامل الآمن مع LocalStorage بدون أخطاء
+// دوال مساعدة للتعامل الآمن مع LocalStorage
 const loadStorage = (key, fallback) => {
   try {
     const item = localStorage.getItem(key);
@@ -67,7 +67,6 @@ const UqdahLogo = ({ size = 80 }) => (
 );
 
 export default function App() {
-  // حالة الشعار والمواد مسترجعة تلقائياً من الذاكرة المحلية
   const [customLogo, setCustomLogo] = useState(() => loadStorage('uqdah_logo', null));
   const [subjects, setSubjects] = useState(() => loadStorage('uqdah_subjects', ['احياء', 'رياضيات', 'فيزياء', 'كيمياء']));
   const [subject, setSubject] = useState(() => loadStorage('uqdah_subject', 'احياء'));
@@ -76,11 +75,11 @@ export default function App() {
   // القالب المختار
   const [selectedTemplate, setSelectedTemplate] = useState(() => loadStorage('uqdah_template', 'emerald'));
 
-  // السؤال مسترجع تلقائياً
+  // السؤال
   const [questionText, setQuestionText] = useState(() => loadStorage('uqdah_q_text', 'أي الهرمونات التالية يُنتج في الخصية؟'));
   const [questionImage, setQuestionImage] = useState(() => loadStorage('uqdah_q_img', null));
 
-  // الخيارات مسترجعة تلقائياً
+  // الخيارات
   const [options, setOptions] = useState(() => loadStorage('uqdah_options', [
     { id: 'A', label: 'أ', text: 'الألدوستيرون', image: null, enabled: true },
     { id: 'B', label: 'ب', text: 'الكورتيزول', image: null, enabled: true },
@@ -91,7 +90,7 @@ export default function App() {
   const [rightAnswer, setRightAnswer] = useState(() => loadStorage('uqdah_right_ans', 'C'));
   const [highlightCorrectAnswer, setHighlightCorrectAnswer] = useState(() => loadStorage('uqdah_highlight', true));
 
-  // الربط الذهني مسترجع تلقائياً
+  // الربط الذهني
   const [enableMnemonic, setEnableMnemonic] = useState(() => loadStorage('uqdah_mnemonic_en', true));
   const [mnemonicLabel, setMnemonicLabel] = useState(() => loadStorage('uqdah_mnemonic_lbl', 'ربط'));
   const [mnemonicText, setMnemonicText] = useState(() => loadStorage('uqdah_mnemonic_txt', 'هو هرمون ذكري ف أخوك لما يشوفكم يقول تسترو (تستيستيرون)'));
@@ -109,8 +108,9 @@ export default function App() {
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
 
-  // معاينة الصورة المستخرجة للآيفون لحفظها بضغطة مطولة
+  // معاينة الصورة والفيديو المستخرج للآيفون لحفظهما بضغطة واحدة
   const [extractedPreviewImage, setExtractedPreviewImage] = useState(null);
+  const [extractedPreviewVideo, setExtractedPreviewVideo] = useState(null);
 
   // مراجع القالب
   const previewWrapperRef = useRef(null);
@@ -122,7 +122,7 @@ export default function App() {
   const qImgRef = useRef(null);
   const videoPlayerRef = useRef(null);
 
-  // مراجع مسار الصوت لمنع أخطاء الـ Web Audio API في سفاري
+  // مراجع مسار الصوت
   const audioCtxRef = useRef(null);
   const sourceNodeRef = useRef(null);
 
@@ -136,31 +136,12 @@ export default function App() {
   const optDRef = useRef(null);
   const optImgRefs = { A: optARef, B: optBRef, C: optCRef, D: optDRef };
 
-  // مزامنة وحفظ كافة المدخلات في الـ LocalStorage تلقائياً فور كتابتها
-  useEffect(() => {
-    saveStorage('uqdah_logo', customLogo);
-  }, [customLogo]);
-
-  useEffect(() => {
-    saveStorage('uqdah_subjects', subjects);
-    saveStorage('uqdah_subject', subject);
-  }, [subjects, subject]);
-
-  useEffect(() => {
-    saveStorage('uqdah_template', selectedTemplate);
-  }, [selectedTemplate]);
-
-  useEffect(() => {
-    saveStorage('uqdah_q_text', questionText);
-    saveStorage('uqdah_q_img', questionImage);
-  }, [questionText, questionImage]);
-
-  useEffect(() => {
-    saveStorage('uqdah_options', options);
-    saveStorage('uqdah_right_ans', rightAnswer);
-    saveStorage('uqdah_highlight', highlightCorrectAnswer);
-  }, [options, rightAnswer, highlightCorrectAnswer]);
-
+  // حفظ المدخلات في LocalStorage تلقائياً
+  useEffect(() => { saveStorage('uqdah_logo', customLogo); }, [customLogo]);
+  useEffect(() => { saveStorage('uqdah_subjects', subjects); saveStorage('uqdah_subject', subject); }, [subjects, subject]);
+  useEffect(() => { saveStorage('uqdah_template', selectedTemplate); }, [selectedTemplate]);
+  useEffect(() => { saveStorage('uqdah_q_text', questionText); saveStorage('uqdah_q_img', questionImage); }, [questionText, questionImage]);
+  useEffect(() => { saveStorage('uqdah_options', options); saveStorage('uqdah_right_ans', rightAnswer); saveStorage('uqdah_highlight', highlightCorrectAnswer); }, [options, rightAnswer, highlightCorrectAnswer]);
   useEffect(() => {
     saveStorage('uqdah_mnemonic_en', enableMnemonic);
     saveStorage('uqdah_mnemonic_lbl', mnemonicLabel);
@@ -173,7 +154,7 @@ export default function App() {
     }
   }, [enableMnemonic, mnemonicLabel, mnemonicText, mnemonicMediaType, mnemonicMediaUrl]);
 
-  // دالة تصغير وضغط سريعة للصور لتفادي استهلاك ذاكرة الآيفون
+  // تصغير وضغط الصور
   const compressImage = (file, maxWidth = 900, maxHeight = 900, quality = 0.9) => {
     return new Promise((resolve) => {
       if (!file || !file.type.startsWith('image/')) {
@@ -225,7 +206,7 @@ export default function App() {
     }
   };
 
-  // حساب الأبعاد بدقة للجوال
+  // قياس الحجم على الجوال
   useEffect(() => {
     const handleResize = () => {
       if (!previewWrapperRef.current || !templateCardRef.current) return;
@@ -426,6 +407,7 @@ export default function App() {
   const t = themes[selectedTemplate] || themes.emerald;
   const arabicLabels = ['أ', 'ب', 'ج', 'د'];
 
+  // الشعار على اليسار في القوالب المعدلة فقط
   const isLeftLogoTheme = ['navy', 'emerald', 'violet', 'torn_paper'].includes(t.waveType);
 
   const activeOptions = options.filter(
@@ -437,7 +419,6 @@ export default function App() {
   const hasMnemonicMedia = enableMnemonic && mnemonicMediaType !== 'none' && mnemonicMediaUrl;
   const isVideoMnemonic = enableMnemonic && mnemonicMediaType === 'video' && mnemonicMediaUrl;
 
-  // دالة رسم أي صورة على الـ Canvas بدقة
   const renderFittedImage = (ctx, img, destX, destY, destW, destH, radius = 0) => {
     ctx.save();
     if (radius > 0) {
@@ -469,7 +450,6 @@ export default function App() {
     ctx.restore();
   };
 
-  // دالة بناء الـ Canvas المتكاملة
   const buildCardCanvas = async (cardEl) => {
     const basePngUrl = await toPng(cardEl, {
       pixelRatio: 2,
@@ -478,9 +458,9 @@ export default function App() {
     });
 
     const baseImg = new Image();
-    await new Promise((res, rej) => {
+    await new Promise((res) => {
       baseImg.onload = res;
-      baseImg.onerror = rej;
+      baseImg.onerror = res;
       setTimeout(res, 2000);
       baseImg.src = basePngUrl;
     });
@@ -548,7 +528,7 @@ export default function App() {
     }
   };
 
-  // استخراج الفيديو مدمجاً بدون تعليق ومحمي ضد توقف الـ 28% في الآيفون
+  // استخراج الفيديو مدمجاً بدون تعليق نهائياً عند 99%
   const handleExtractFullVideo = async () => {
     const video = videoPlayerRef.current;
     const cardEl = templateCardRef.current;
@@ -564,7 +544,7 @@ export default function App() {
       setExportProgress(15);
       const cardCanvas = await buildCardCanvas(cardEl);
 
-      setExportProgress(28);
+      setExportProgress(25);
       const cardImg = new Image();
       await new Promise((res) => {
         cardImg.onload = res;
@@ -652,7 +632,13 @@ export default function App() {
       const finishRecording = () => {
         if (recordingStopped) return;
         recordingStopped = true;
+        setExportProgress(100);
+
         if (animationFrameId) cancelAnimationFrame(animationFrameId);
+
+        try {
+          stream.getTracks().forEach((track) => track.stop());
+        } catch (_) {}
 
         try {
           if (mediaRecorder.state === 'recording') {
@@ -661,48 +647,38 @@ export default function App() {
         } catch (_) {}
       };
 
-      mediaRecorder.onstop = async () => {
+      mediaRecorder.onstop = () => {
         const mime = options.mimeType || 'video/mp4';
         const ext = mime.includes('mp4') ? 'mp4' : 'webm';
         const blob = new Blob(chunks, { type: mime });
         const fileName = `سؤال_عقدة_مدمج_${subject || 'تحصيلي'}_${Date.now()}.${ext}`;
-
-        // محاولة الحفظ المباشر في ألبوم صور الآيفون (Save Video)
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-        if (isIOS && navigator.canShare) {
-          try {
-            const file = new File([blob], fileName, { type: mime });
-            if (navigator.canShare({ files: [file] })) {
-              await navigator.share({
-                files: [file],
-                title: 'سؤال أكاديمية عقدة',
-              });
-              setIsExporting(false);
-              setExportProgress(0);
-              video.pause();
-              video.currentTime = 0;
-              return;
-            }
-          } catch (shareErr) {
-            console.warn('Share API cancelled or fallback:', shareErr);
-          }
-        }
-
         const downloadUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = downloadUrl;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
 
         setIsExporting(false);
         setExportProgress(0);
         video.pause();
         video.currentTime = 0;
+
+        // فتح نافذة المعاينة والحفظ للآيفون لتفادي التعليق
+        setExtractedPreviewVideo({
+          url: downloadUrl,
+          blob,
+          fileName,
+          mime,
+        });
+
+        // تنزيل تلقائي للكمبيوتر والأندرويد
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        if (!isIOS) {
+          const a = document.createElement('a');
+          a.href = downloadUrl;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        }
       };
 
-      // تشغيل الفيديو بدون Await وكتمه في الواجهة لتفادي حظر الآيفون
       video.currentTime = 0;
       video.muted = true;
       video.play().catch(() => {});
@@ -715,7 +691,6 @@ export default function App() {
 
       const startTime = performance.now();
 
-      // حلقة رسم وحساب تقدم تعتمد على التوقيت الزمني الحقيقي لتفادي التعليق نهائياً
       const renderLoop = () => {
         if (recordingStopped) return;
 
@@ -746,9 +721,76 @@ export default function App() {
     }
   };
 
+  // دالة الحفظ المباشر في ألبوم صور الآيفون (تعمل بنقرة يد حقيقية بدون أي حظر)
+  const handleSaveVideoToIOS = async () => {
+    if (!extractedPreviewVideo) return;
+    try {
+      const file = new File([extractedPreviewVideo.blob], extractedPreviewVideo.fileName, { type: extractedPreviewVideo.mime });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: 'سؤال أكاديمية عقدة',
+        });
+        return;
+      }
+    } catch (e) {
+      console.warn('Share API fallback:', e);
+    }
+    // فتح الرابط للتحميل
+    window.open(extractedPreviewVideo.url, '_blank');
+  };
+
   return (
     <div dir="rtl" className="min-h-screen bg-[#F4F6F9] text-slate-900 flex flex-col font-sans">
-      {/* نافذة معاينة الصورة للآيفون لحفظها في الصور بضغطة مطولة */}
+      {/* نافذة معاينة وحفظ الفيديو للآيفون لحفظه مباشرة في ألبوم الصور */}
+      {extractedPreviewVideo && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-5 space-y-4 shadow-2xl text-center">
+            <div className="flex items-center justify-between pb-2 border-b">
+              <span className="text-sm font-black text-slate-900">تم استخراج الفيديو بنجاح 🎬</span>
+              <button
+                type="button"
+                onClick={() => setExtractedPreviewVideo(null)}
+                className="text-slate-400 hover:text-slate-700 text-lg font-bold px-2 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="max-h-[50vh] overflow-hidden rounded-2xl border border-slate-200 bg-black">
+              <video
+                src={extractedPreviewVideo.url}
+                controls
+                playsInline
+                autoPlay
+                className="w-full h-auto block max-h-[50vh] mx-auto object-contain"
+              />
+            </div>
+
+            {/* الزر المباشر لحفظ الفيديو في ألبوم الصور */}
+            <button
+              type="button"
+              onClick={handleSaveVideoToIOS}
+              className="w-full py-3 bg-[#D65261] hover:bg-[#B83746] text-white rounded-xl text-xs font-black cursor-pointer shadow-md flex items-center justify-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              <span>حفظ الفيديو في الصور (Save Video) 📲</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setExtractedPreviewVideo(null)}
+              className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-black cursor-pointer"
+            >
+              إغلاق
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* نافذة معاينة الصورة للآيفون */}
       {extractedPreviewImage && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-sm w-full p-5 space-y-4 shadow-2xl text-center">
@@ -838,7 +880,7 @@ export default function App() {
                   حفظ تلقائي مفعّل
                 </span>
               </div>
-              <p className="text-[10px] sm:text-xs text-slate-500 truncate">يتم حفظ بياناتك تلقائياً في ذاكرة المتصفح</p>
+              <p className="text-[10px] sm:text-xs text-slate-500 truncate">تصدير فيديو متكامل للآيفون</p>
             </div>
           </div>
 
@@ -1444,7 +1486,7 @@ export default function App() {
                         <polyline points="138,140 146,141 148,150" fill="none" stroke="#FF7A1A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
 
-                      {/* زاوية أسفل اليسار: شخبطة لولبية + مصفوفة نقاط بنفسجية + ورق ممزق */}
+                      {/* زاوية أسفل اليسار */}
                       <svg viewBox="0 0 170 160" style={{ position: 'absolute', bottom: 0, left: 0, width: '170px', height: '160px', pointerEvents: 'none', zIndex: 1 }}>
                         <g fill="#6C44D6" opacity="0.85">
                           <circle cx="20" cy="25" r="3.2" />
