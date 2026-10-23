@@ -73,8 +73,9 @@ export default function App() {
   const [rightAnswer, setRightAnswer] = useState('C');
   const [highlightCorrectAnswer, setHighlightCorrectAnswer] = useState(true);
 
-  // الربط الذهني
+  // الربط الذهني مع كلمة شارة قابلة للتعديل أو الإخفاء
   const [enableMnemonic, setEnableMnemonic] = useState(true);
+  const [mnemonicLabel, setMnemonicLabel] = useState('ربط'); // قابلة للتعديل أو المسح تماماً
   const [mnemonicText, setMnemonicText] = useState('هو هرمون ذكري ف أخوك لما يشوفكم يقول تسترو (تستيستيرون)');
   const [mnemonicMediaType, setMnemonicMediaType] = useState('video');
   const [mnemonicMediaUrl, setMnemonicMediaUrl] = useState(null);
@@ -133,7 +134,7 @@ export default function App() {
       window.removeEventListener('resize', handleResize);
       observer.disconnect();
     };
-  }, [options, questionText, questionImage, mnemonicText, mnemonicMediaUrl, mobileTab, selectedTemplate]);
+  }, [options, questionText, questionImage, mnemonicText, mnemonicLabel, mnemonicMediaUrl, mobileTab, selectedTemplate]);
 
   const handleFileUpload = (file, callback) => {
     if (!file) return;
@@ -174,6 +175,7 @@ export default function App() {
       { id: 'D', label: 'د', text: '', image: null, enabled: true },
     ]);
     setMnemonicText('');
+    setMnemonicLabel('ربط');
     setMnemonicMediaUrl(null);
     setMnemonicMediaType('none');
   };
@@ -604,7 +606,7 @@ export default function App() {
                   صانع القوالب الذكي
                 </span>
               </div>
-              <p className="text-[10px] sm:text-xs text-slate-500 truncate">توزيع هندسي متوازن للشعار والقوالب</p>
+              <p className="text-[10px] sm:text-xs text-slate-500 truncate">شارة ربط وشرح قابلة للتعديل والإخفاء</p>
             </div>
           </div>
 
@@ -904,12 +906,12 @@ export default function App() {
 
             <hr className="border-slate-100" />
 
-            {/* 4. الربط الذهني */}
+            {/* 4. الربط الذهني مع شارة قابلة للتعديل أو الحذف */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-xs font-black text-slate-800 block">4. الربط الذهني</span>
-                  <span className="text-[11px] text-slate-500">جملة ربط ومقطع أو صورة</span>
+                  <span className="text-xs font-black text-slate-800 block">4. الربط والشرح الذهني</span>
+                  <span className="text-[11px] text-slate-500">خصص شارة الكلمة أو احذفها واكتب الشرح</span>
                 </div>
                 <button
                   type="button"
@@ -924,13 +926,67 @@ export default function App() {
 
               {enableMnemonic && (
                 <div className="p-3 sm:p-3.5 rounded-xl bg-rose-50/50 border border-rose-200 space-y-3">
+                  {/* تعديل أو حذف كلمة الشارة (مثل ربط، فكرة، تلميح...) */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-bold text-slate-700">كلمة الشارة (اتركها فارغة لإخفائها):</label>
+                      {mnemonicLabel.trim() !== '' ? (
+                        <button
+                          type="button"
+                          onClick={() => setMnemonicLabel('')}
+                          className="text-[10px] font-bold text-rose-600 hover:underline cursor-pointer"
+                        >
+                          إخفاء الشارة ✕
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setMnemonicLabel('ربط')}
+                          className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
+                        >
+                          استعادة "ربط" ✓
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="text"
+                        value={mnemonicLabel}
+                        onChange={(e) => setMnemonicLabel(e.target.value)}
+                        placeholder="اكتب كلمة الشارة أو اتركها فارغة للإخفاء..."
+                        className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold focus:outline-none text-center placeholder:text-slate-400"
+                      />
+                    </div>
+
+                    {/* خيارات سريعة بنقرة واحدة */}
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                      <span className="text-[10px] text-slate-500 font-bold">خيارات سريعة:</span>
+                      {['ربط', 'فكرة', 'تلميح', 'توضيح', 'قانون', ''].map((tag) => (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => setMnemonicLabel(tag)}
+                          className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border cursor-pointer transition-all ${
+                            mnemonicLabel === tag
+                              ? 'bg-[#D65261] text-white border-[#D65261]'
+                              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                          }`}
+                        >
+                          {tag === '' ? 'بدون شارة' : tag}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* نص جملة الربط / الشرح */}
                   <div>
-                    <label className="text-[11px] font-bold text-slate-700 block mb-1">جملة الربط:</label>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">نص جملة الربط / الشرح:</label>
                     <input
                       type="text"
                       value={mnemonicText}
                       onChange={(e) => setMnemonicText(e.target.value)}
-                      placeholder="اكتب جملة الربط..."
+                      placeholder="اكتب جملة الربط أو الشرح هنا..."
                       className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold focus:outline-none"
                     />
                   </div>
@@ -1187,7 +1243,7 @@ export default function App() {
                   ) : t.waveType === 'emerald' ? (
                     /* قالب المينت الأكاديمي (أحياء وكيمياء): قصاصات ورق ممزقة + دورق كيميائي، حمض نووي، مجهر، وحلقات بنزين */
                     <>
-                      {/* زاوية أعلى اليسار: ورق ممزق بلون زمردي ومينت */}
+                      {/* زاوية أعلى اليسار */}
                       <svg viewBox="0 0 170 145" style={{ position: 'absolute', top: 0, left: 0, width: '170px', height: '145px', pointerEvents: 'none', zIndex: 1 }}>
                         <path d="M 0,0 L 145,0 Q 120,35 90,70 L 50,110 L 0,135 Z" fill="#10B981" />
                         <path d="M 0,0 L 135,0 L 130,12 L 122,16 L 124,26 L 115,32 L 118,42 L 105,50 L 108,58 L 95,66 L 90,78 L 75,85 L 72,96 L 55,104 L 50,115 L 32,122 L 25,130 L 0,125 Z" fill="#064E3B" stroke="#FFFFFF" strokeWidth="1.5" />
@@ -1244,7 +1300,7 @@ export default function App() {
                   ) : t.waveType === 'navy' ? (
                     /* قالب الفيزياء والرياضيات (التحصيلي الملكي): قصاصات ورق ممزقة + مجسم الذرة، المغناطيس، والتكاملات */
                     <>
-                      {/* زاوية أعلى اليسار: ورق ممزق كحلي وسيان */}
+                      {/* زاوية أعلى اليسار */}
                       <svg viewBox="0 0 170 145" style={{ position: 'absolute', top: 0, left: 0, width: '170px', height: '145px', pointerEvents: 'none', zIndex: 1 }}>
                         <path d="M 0,0 L 140,0 Q 120,35 90,68 L 52,108 L 0,132 Z" fill="#0284C7" />
                         <path d="M 0,0 L 130,0 L 126,10 L 120,14 L 122,24 L 115,30 L 117,38 L 108,46 L 110,54 L 98,62 L 95,72 L 80,80 L 78,90 L 62,98 L 58,108 L 40,116 L 35,124 L 18,128 L 0,122 Z" fill="#0F2744" stroke="#FFFFFF" strokeWidth="1.5" />
@@ -1252,7 +1308,7 @@ export default function App() {
                         <text x="125" y="85" fontFamily="serif" fontSize="20" fill="#38BDF8" fontWeight="bold">∫</text>
                       </svg>
 
-                      {/* زاوية أعلى اليمين: رقعة ورق ممزق + مجسم الذرة بمداراتها الإلكترونية */}
+                      {/* زاوية أعلى اليمين: مجسم الذرة بمداراتها الإلكترونية */}
                       <svg viewBox="0 0 160 160" style={{ position: 'absolute', top: 0, right: 0, width: '160px', height: '160px', pointerEvents: 'none', zIndex: 1 }}>
                         <path d="M 45,0 L 160,0 L 160,135 Q 120,120 75,100 L 55,60 Z" fill="#0284C7" />
                         <path d="M 55,0 L 160,0 L 160,125 L 148,122 L 140,130 L 130,120 L 120,125 L 110,115 L 98,118 L 88,105 L 75,110 L 68,95 L 62,70 L 52,45 L 60,25 Z" fill="#0F2744" stroke="#FFFFFF" strokeWidth="1.5" />
@@ -1292,7 +1348,7 @@ export default function App() {
                   ) : t.waveType === 'violet' ? (
                     /* قالب القدرات والتفكير الشامل (البنفسجي الإبداعي): قصاصات ورق ممزقة + دماغ بالتروس، مصباح الفكرة، هدف وسهم 100% */
                     <>
-                      {/* زاوية أعلى اليسار: ورق ممزق بنفسجي وكهرماني ذهبي */}
+                      {/* زاوية أعلى اليسار */}
                       <svg viewBox="0 0 170 145" style={{ position: 'absolute', top: 0, left: 0, width: '170px', height: '145px', pointerEvents: 'none', zIndex: 1 }}>
                         <path d="M 0,0 L 140,0 Q 120,35 90,68 L 52,108 L 0,132 Z" fill="#F59E0B" />
                         <path d="M 0,0 L 130,0 L 126,10 L 120,14 L 122,24 L 115,30 L 117,38 L 108,46 L 110,54 L 98,62 L 95,72 L 80,80 L 78,90 L 62,98 L 58,108 L 40,116 L 35,124 L 18,128 L 0,122 Z" fill="#4C1D95" stroke="#FFFFFF" strokeWidth="1.5" />
@@ -1300,7 +1356,7 @@ export default function App() {
                         <text x="125" y="85" fontFamily="sans-serif" fontSize="16" fill="#8B5CF6" fontWeight="bold">100%</text>
                       </svg>
 
-                      {/* زاوية أعلى اليمين: رقعة ورق ممزق + مصباح الفكرة والإبداع */}
+                      {/* زاوية أعلى اليمين: مصباح الفكرة والإبداع */}
                       <svg viewBox="0 0 160 160" style={{ position: 'absolute', top: 0, right: 0, width: '160px', height: '160px', pointerEvents: 'none', zIndex: 1 }}>
                         <path d="M 45,0 L 160,0 L 160,135 Q 120,120 75,100 L 55,60 Z" fill="#F59E0B" />
                         <path d="M 55,0 L 160,0 L 160,125 L 148,122 L 140,130 L 130,120 L 120,125 L 110,115 L 98,118 L 88,105 L 75,110 L 68,95 L 62,70 L 52,45 L 60,25 Z" fill="#4C1D95" stroke="#FFFFFF" strokeWidth="1.5" />
@@ -1552,7 +1608,7 @@ export default function App() {
                       </div>
                     )}
 
-                    {/* جملة الربط الذهني */}
+                    {/* جملة الربط والشرح الذهني مع شارة قابلة للتعديل أو الإخفاء في جميع القوالب */}
                     {hasMnemonicText && (
                       <div
                         style={{
@@ -1565,19 +1621,22 @@ export default function App() {
                           gap: '8px',
                         }}
                       >
-                        <span
-                          style={{
-                            backgroundColor: t.mnemonicBadge,
-                            color: '#ffffff',
-                            padding: '2px 10px',
-                            borderRadius: '999px',
-                            fontSize: '13px',
-                            fontWeight: 800,
-                            flexShrink: 0,
-                          }}
-                        >
-                          ربط
-                        </span>
+                        {/* الشارة تظهر فقط إذا كتب المستخدم نصاً بداخلها وتختفي تماماً إذا كانت فارغة */}
+                        {mnemonicLabel && mnemonicLabel.trim() !== '' && (
+                          <span
+                            style={{
+                              backgroundColor: t.mnemonicBadge,
+                              color: '#ffffff',
+                              padding: '2px 10px',
+                              borderRadius: '999px',
+                              fontSize: '13px',
+                              fontWeight: 800,
+                              flexShrink: 0,
+                            }}
+                          >
+                            {mnemonicLabel.trim()}
+                          </span>
+                        )}
                         <div
                           style={{
                             flex: 1,
