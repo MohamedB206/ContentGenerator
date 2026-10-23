@@ -408,6 +408,7 @@ export default function App() {
   const t = themes[selectedTemplate] || themes.emerald;
   const arabicLabels = ['أ', 'ب', 'ج', 'د'];
 
+  // الشعار على اليسار في القوالب المعدلة فقط
   const isLeftLogoTheme = ['navy', 'emerald', 'violet', 'torn_paper'].includes(t.waveType);
 
   const activeOptions = options.filter(
@@ -470,6 +471,7 @@ export default function App() {
     canvas.height = baseImg.naturalHeight || 1350;
     const ctx = canvas.getContext('2d');
 
+    // رسم القالب والخلفية بزوايا مستقيمة تماماً وبدون أي انحناء
     ctx.drawImage(baseImg, 0, 0, canvas.width, canvas.height);
 
     const cardRect = cardEl.getBoundingClientRect();
@@ -528,7 +530,7 @@ export default function App() {
     }
   };
 
-  // استخراج الفيديو مدمجاً مع الصوت في سفاري وكروم
+  // استخراج الفيديو مدمجاً بدون انحناء في الحواف وبصوت نقي
   const handleExtractFullVideo = async () => {
     const video = videoPlayerRef.current;
     const cardEl = templateCardRef.current;
@@ -580,7 +582,6 @@ export default function App() {
         throw new Error('متصفحك لا يدعم تسجيل الشاشة');
       }
 
-      // مسار الصوت النقي: غير مكتوم ويسحب الصوت بنقاء كامل في سفاري وكروم
       try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         if (AudioContextClass) {
@@ -603,10 +604,8 @@ export default function App() {
           const destNode = audioCtx.createMediaStreamDestination();
           sourceNodeRef.current.disconnect();
 
-          // توجيه الصوت مباشرة للتسجيل
           sourceNodeRef.current.connect(destNode);
 
-          // كتم السماعة الخارجية فقط عبر الـ Gain لتفادي كتم سفاري للصوت المسجل
           sourceNodeRef.current.connect(gainNodeRef.current);
           gainNodeRef.current.gain.value = 0;
           gainNodeRef.current.connect(audioCtx.destination);
@@ -620,7 +619,6 @@ export default function App() {
         console.warn('مسار الصوت:', audioErr);
       }
 
-      // اختيار الكوديك المناسب لسفاري وكروم
       let options = {};
       if (MediaRecorder.isTypeSupported('video/mp4;codecs=avc1,mp4a.40.2')) {
         options = { mimeType: 'video/mp4;codecs=avc1,mp4a.40.2' };
@@ -662,7 +660,6 @@ export default function App() {
           stream.getTracks().forEach((track) => track.stop());
         } catch (_) {}
 
-        // فتح نافذة المعاينة مع خيارات الحفظ الفوري
         setExtractedPreviewVideo({
           url: downloadUrl,
           blob,
@@ -670,7 +667,6 @@ export default function App() {
           mime,
         });
 
-        // تنزيل فوري متوافق مع كروم والكمبيوتر والأندرويد
         try {
           const a = document.createElement('a');
           a.style.display = 'none';
@@ -709,7 +705,6 @@ export default function App() {
       };
 
       video.currentTime = 0;
-      // عدم كتم الفيديو الأصلي حتى لا يقطع سفاري الصوت
       video.muted = false;
       video.play().catch(() => {
         video.muted = true;
@@ -754,7 +749,6 @@ export default function App() {
     }
   };
 
-  // دالة الحفظ في الصور للآيفون (Share Sheet)
   const handleSaveVideoToIOS = async () => {
     if (!extractedPreviewVideo) return;
     try {
@@ -769,11 +763,9 @@ export default function App() {
     } catch (e) {
       console.warn('Share API fallback:', e);
     }
-    // في حال كروم أو تعذر المشاركة نفتح رابط التحميل المباشر
     handleDirectDownloadVideo();
   };
 
-  // دالة التحميل المباشر المتوافقة مع كروم وكل المتصفحات
   const handleDirectDownloadVideo = () => {
     if (!extractedPreviewVideo) return;
     const a = document.createElement('a');
@@ -788,7 +780,7 @@ export default function App() {
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#F4F6F9] text-slate-900 flex flex-col font-sans">
-      {/* نافذة معاينة وحفظ الفيديو مع خيارات الحفظ والتحميل لكروم وسفاري */}
+      {/* نافذة معاينة وحفظ الفيديو */}
       {extractedPreviewVideo && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-sm w-full p-5 space-y-3.5 shadow-2xl text-center">
@@ -813,7 +805,6 @@ export default function App() {
               />
             </div>
 
-            {/* زر حفظ في الصور للآيفون */}
             <button
               type="button"
               onClick={handleSaveVideoToIOS}
@@ -825,7 +816,6 @@ export default function App() {
               <span>حفظ الفيديو في الصور (Save Video) 📲</span>
             </button>
 
-            {/* زر تحميل مباشر يعمل 100% في قوقل كروم */}
             <button
               type="button"
               onClick={handleDirectDownloadVideo}
@@ -887,7 +877,7 @@ export default function App() {
             <h3 className="text-base font-black">
               {isVideoMnemonic ? 'جاري دمج الفيديو مع الصوت...' : 'جاري استخراج القالب...'}
             </h3>
-            <p className="text-xs text-slate-300">يتم تسجيل الصوت والمقطع وتجهيز التنزيل لجميع المتصفحات</p>
+            <p className="text-xs text-slate-300">يتم إعداد القالب بدون حواف منحنية وبأبعاد متناسقة</p>
             {isVideoMnemonic && exportProgress > 0 && (
               <div className="w-full bg-slate-800 rounded-full h-3 overflow-hidden border border-slate-700">
                 <div
@@ -938,7 +928,7 @@ export default function App() {
                   حفظ تلقائي مفعّل
                 </span>
               </div>
-              <p className="text-[10px] sm:text-xs text-slate-500 truncate">تصدير فيديو بصوت نقي وتنزيل فوري</p>
+              <p className="text-[10px] sm:text-xs text-slate-500 truncate">تصدير هندسي مستقيم بدون حواف دائرية</p>
             </div>
           </div>
 
@@ -1447,7 +1437,7 @@ export default function App() {
               : 'fixed -left-[9999px] top-0 opacity-0 pointer-events-none lg:relative lg:left-0 lg:opacity-100 lg:pointer-events-auto lg:block'
           }`}
         >
-          {/* اختيار الثيمات */}
+          {/* اختيار الثيمات السبعة */}
           <div className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-4 shadow-sm space-y-2.5">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black text-slate-800">اختر ثيم القالب:</span>
@@ -1481,7 +1471,7 @@ export default function App() {
             </div>
           </div>
 
-          {/* حاوية المعاينة الثابتة هندسياً */}
+          {/* حاوية المعاينة الثابتة هندسياً مع زوايا مستقيمة تماماً (Border-Radius: 0) */}
           <div className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-5 shadow-sm">
             <div
               ref={previewWrapperRef}
@@ -1498,6 +1488,7 @@ export default function App() {
                   transformOrigin: 'top center',
                 }}
               >
+                {/* القالب الخارجي بزوايا مستقيمة 0px ليظهر كبوستر وفيديو كامل بدون حواف دائرية مشوهة */}
                 <div
                   ref={templateCardRef}
                   style={{
@@ -1507,13 +1498,13 @@ export default function App() {
                     backgroundColor: t.bg,
                     position: 'relative',
                     overflow: 'hidden',
-                    borderRadius: '24px',
+                    borderRadius: '0px',
                     padding: hasMnemonicMedia ? '20px 28px 20px' : '20px 28px 28px',
                     boxSizing: 'border-box',
                     border: `1.5px solid ${t.border}22`,
                   }}
                 >
-                  {/* عناصر الجرافيك لقالب الورق الممزق والكولاج */}
+                  {/* عناصر الجرافيك لقالب الورق الممزق والكولاج (Torn Paper Theme) */}
                   {t.waveType === 'torn_paper' ? (
                     <>
                       {/* زاوية أعلى اليسار */}
@@ -1544,7 +1535,7 @@ export default function App() {
                         <polyline points="138,140 146,141 148,150" fill="none" stroke="#FF7A1A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
 
-                      {/* زاوية أسفل اليسار */}
+                      {/* زاوية أسفل اليسار: شخبطة لولبية + مصفوفة نقاط بنفسجية + ورق ممزق */}
                       <svg viewBox="0 0 170 160" style={{ position: 'absolute', bottom: 0, left: 0, width: '170px', height: '160px', pointerEvents: 'none', zIndex: 1 }}>
                         <g fill="#6C44D6" opacity="0.85">
                           <circle cx="20" cy="25" r="3.2" />
@@ -1790,23 +1781,27 @@ export default function App() {
                     )}
                   </div>
 
-                  {/* دائرة اسم المادة */}
+                  {/* شارة اسم المادة الديناميكية: تتمدد أوتوماتيكياً مع النصوص الطويلة بدون خروج النص */}
                   <div style={{ position: 'relative', zIndex: 3, display: 'flex', justifyContent: 'center', marginTop: '-30px', marginBottom: '-38px' }}>
                     <div
                       style={{
-                        width: '86px',
-                        height: '86px',
-                        borderRadius: '50%',
+                        minWidth: '84px',
+                        height: '84px',
+                        borderRadius: '999px',
                         backgroundColor: t.subjectBg,
                         color: t.subjectColor,
-                        display: 'flex',
+                        display: 'inline-flex',
                         alignItems: 'center',
                         justifyContent: 'center',
+                        padding: '0 20px',
                         fontWeight: 800,
-                        fontSize: '28px',
+                        fontSize: subject.length > 10 ? '17px' : subject.length > 6 ? '21px' : '26px',
+                        whiteSpace: 'nowrap',
+                        maxWidth: '300px',
                         textShadow: '0 1px 2px rgba(0,0,0,0.15)',
                         boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
                         border: t.isDark ? '2.5px solid #FFFFFF' : 'none',
+                        boxSizing: 'border-box',
                       }}
                     >
                       {subject || 'احياء'}
