@@ -458,9 +458,9 @@ export default function App() {
     });
 
     const baseImg = new Image();
-    await new Promise((res) => {
+    await new Promise((res, rej) => {
       baseImg.onload = res;
-      baseImg.onerror = res;
+      baseImg.onerror = rej;
       setTimeout(res, 2000);
       baseImg.src = basePngUrl;
     });
@@ -528,7 +528,7 @@ export default function App() {
     }
   };
 
-  // استخراج الفيديو مدمجاً بدون تعليق نهائياً عند 99%
+  // استخراج الفيديو مدمجاً بدون تعليق نهائياً ومحمي ضد التوقف عند 100%
   const handleExtractFullVideo = async () => {
     const video = videoPlayerRef.current;
     const cardEl = templateCardRef.current;
@@ -628,26 +628,13 @@ export default function App() {
       const totalDuration = video.duration && !isNaN(video.duration) ? video.duration : 10;
       let animationFrameId = null;
       let recordingStopped = false;
+      let stopTriggered = false;
 
-      const finishRecording = () => {
-        if (recordingStopped) return;
-        recordingStopped = true;
-        setExportProgress(100);
+      // دالة إنهاء التسجيل الآمنة والسريعة لحل مشكلة 100%
+      const processCompletedVideo = () => {
+        if (stopTriggered) return;
+        stopTriggered = true;
 
-        if (animationFrameId) cancelAnimationFrame(animationFrameId);
-
-        try {
-          stream.getTracks().forEach((track) => track.stop());
-        } catch (_) {}
-
-        try {
-          if (mediaRecorder.state === 'recording') {
-            mediaRecorder.stop();
-          }
-        } catch (_) {}
-      };
-
-      mediaRecorder.onstop = () => {
         const mime = options.mimeType || 'video/mp4';
         const ext = mime.includes('mp4') ? 'mp4' : 'webm';
         const blob = new Blob(chunks, { type: mime });
@@ -659,7 +646,11 @@ export default function App() {
         video.pause();
         video.currentTime = 0;
 
-        // فتح نافذة المعاينة والحفظ للآيفون لتفادي التعليق
+        // إيقاف مسار البث بعد تجميع الـ Blob
+        try {
+          stream.getTracks().forEach((track) => track.stop());
+        } catch (_) {}
+
         setExtractedPreviewVideo({
           url: downloadUrl,
           blob,
@@ -667,7 +658,7 @@ export default function App() {
           mime,
         });
 
-        // تنزيل تلقائي للكمبيوتر والأندرويد
+        // تنزيل مباشر لأجهزة الأندرويد والكمبيوتر
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         if (!isIOS) {
           const a = document.createElement('a');
@@ -677,6 +668,29 @@ export default function App() {
           a.click();
           document.body.removeChild(a);
         }
+      };
+
+      const finishRecording = () => {
+        if (recordingStopped) return;
+        recordingStopped = true;
+        setExportProgress(100);
+
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+
+        try {
+          if (mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+          }
+        } catch (_) {}
+
+        // صمام أمان قاطع: إذا تأخر المتصفح عن إطلاق onstop يتم المعالجة بعد ثانية واحدة فوراً
+        setTimeout(() => {
+          processCompletedVideo();
+        }, 1000);
+      };
+
+      mediaRecorder.onstop = () => {
+        processCompletedVideo();
       };
 
       video.currentTime = 0;
@@ -721,7 +735,7 @@ export default function App() {
     }
   };
 
-  // دالة الحفظ المباشر في ألبوم صور الآيفون (تعمل بنقرة يد حقيقية بدون أي حظر)
+  // دالة الحفظ المباشر في ألبوم صور الآيفون بنقرة יד حقيقية
   const handleSaveVideoToIOS = async () => {
     if (!extractedPreviewVideo) return;
     try {
@@ -736,7 +750,6 @@ export default function App() {
     } catch (e) {
       console.warn('Share API fallback:', e);
     }
-    // فتح الرابط للتحميل
     window.open(extractedPreviewVideo.url, '_blank');
   };
 
@@ -767,7 +780,6 @@ export default function App() {
               />
             </div>
 
-            {/* الزر المباشر لحفظ الفيديو في ألبوم الصور */}
             <button
               type="button"
               onClick={handleSaveVideoToIOS}
@@ -1486,7 +1498,7 @@ export default function App() {
                         <polyline points="138,140 146,141 148,150" fill="none" stroke="#FF7A1A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
 
-                      {/* زاوية أسفل اليسار */}
+                      {/* زاوية أسفل اليسار: شخبطة لولبية + مصفوفة نقاط بنفسجية + ورق ممزق */}
                       <svg viewBox="0 0 170 160" style={{ position: 'absolute', bottom: 0, left: 0, width: '170px', height: '160px', pointerEvents: 'none', zIndex: 1 }}>
                         <g fill="#6C44D6" opacity="0.85">
                           <circle cx="20" cy="25" r="3.2" />
