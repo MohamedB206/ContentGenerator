@@ -73,7 +73,7 @@ export default function App() {
   const [rightAnswer, setRightAnswer] = useState('C');
   const [highlightCorrectAnswer, setHighlightCorrectAnswer] = useState(true);
 
-  // الربط الذهني
+  // الربط الذهني مع شارة قابلة للتعديل أو الإخفاء
   const [enableMnemonic, setEnableMnemonic] = useState(true);
   const [mnemonicLabel, setMnemonicLabel] = useState('ربط');
   const [mnemonicText, setMnemonicText] = useState('هو هرمون ذكري ف أخوك لما يشوفكم يقول تسترو (تستيستيرون)');
@@ -100,7 +100,7 @@ export default function App() {
   const qImgRef = useRef(null);
   const videoPlayerRef = useRef(null);
 
-  // مراجع الصوت لمنع تعليق متصفح سفاري
+  // مراجع مسار الصوت لمنع أخطاء الـ Web Audio API في سفاري
   const audioCtxRef = useRef(null);
   const sourceNodeRef = useRef(null);
 
@@ -114,8 +114,8 @@ export default function App() {
   const optDRef = useRef(null);
   const optImgRefs = { A: optARef, B: optBRef, C: optCRef, D: optDRef };
 
-  // دالة تصغير وضغط ذكية لأي صورة ترفع من الآيفون حتى لا تتجاوز حدود ذاكرة WebKit
-  const compressImage = (file, maxWidth = 900, maxHeight = 900, quality = 0.88) => {
+  // دالة تصغير وضغط سريعة للصور لتفادي استهلاك ذاكرة الآيفون
+  const compressImage = (file, maxWidth = 900, maxHeight = 900, quality = 0.9) => {
     return new Promise((resolve) => {
       if (!file || !file.type.startsWith('image/')) {
         resolve(null);
@@ -152,7 +152,7 @@ export default function App() {
 
   const handleFileUpload = async (file, callback) => {
     if (!file) return;
-    const compressed = await compressImage(file, 900, 900, 0.88);
+    const compressed = await compressImage(file, 900, 900, 0.9);
     if (compressed) callback(compressed);
   };
 
@@ -367,6 +367,7 @@ export default function App() {
   const t = themes[selectedTemplate] || themes.emerald;
   const arabicLabels = ['أ', 'ب', 'ج', 'د'];
 
+  // تحديد ما إذا كان القالب من القوالب المعدلة لوضع الشعار على اليسار حصراً
   const isLeftLogoTheme = ['navy', 'emerald', 'violet', 'torn_paper'].includes(t.waveType);
 
   const activeOptions = options.filter(
@@ -378,15 +379,99 @@ export default function App() {
   const hasMnemonicMedia = enableMnemonic && mnemonicMediaType !== 'none' && mnemonicMediaUrl;
   const isVideoMnemonic = enableMnemonic && mnemonicMediaType === 'video' && mnemonicMediaUrl;
 
-  // استخراج الصورة في خطوة نظيفة واحدة بدون أي تكرار
+  // دالة رسم أي صورة على الـ Canvas بدقة وبدون تمدد أو تشويه
+  const renderFittedImage = (ctx, img, destX, destY, destW, destH, radius = 0) => {
+    ctx.save();
+    if (radius > 0) {
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(destX, destY, destW, destH, radius);
+      } else {
+        ctx.rect(destX, destY, destW, destH);
+      }
+      ctx.clip();
+    }
+
+    const imgRatio = img.naturalWidth / img.naturalHeight;
+    const destRatio = destW / destH;
+    let drawW = destW;
+    let drawH = destH;
+    let drawX = destX;
+    let drawY = destY;
+
+    if (imgRatio > destRatio) {
+      drawH = destW / imgRatio;
+      drawY = destY + (destH - drawH) / 2;
+    } else {
+      drawW = destH * imgRatio;
+      drawX = destX + (destW - drawW) / 2;
+    }
+
+    ctx.drawImage(img, drawX, drawY, drawW, drawH);
+    ctx.restore();
+  };
+
+  // دالة بناء الـ Canvas المتكاملة التي تضمن وجود الشعار وكل الصور بدون حذف وبدون تكرار
+  const buildCardCanvas = async (cardEl) => {
+    // 1. التقاط إطار القالب الأساسي والنصوص (مع استثناء الصور الديناميكية لتجنب حظر سفاري)
+    const basePngUrl = await toPng(cardEl, {
+      pixelRatio: 2,
+      cacheBust: false,
+      filter: (node) => !node.classList?.contains('custom-export-img'),
+    });
+
+    const baseImg = new Image();
+    await new Promise((res, rej) => {
+      baseImg.onload = res;
+      baseImg.onerror = rej;
+      setTimeout(res, 2500);
+      baseImg.src = basePngUrl;
+    });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = baseImg.naturalWidth || 1080;
+    canvas.height = baseImg.naturalHeight || 1350;
+    const ctx = canvas.getContext('2d');
+
+    // رسم القالب والخلفية والنصوص
+    ctx.drawImage(baseImg, 0, 0, canvas.width, canvas.height);
+
+    // 2. رسم الشعار وصور السؤال والخيارات والربط مباشرة وبدقة تامة فوق الـ Canvas
+    const cardRect = cardEl.getBoundingClientRect();
+    const scaleX = canvas.width / cardRect.width;
+    const scaleY = canvas.height / cardRect.height;
+
+    const dynamicImgs = Array.from(cardEl.querySelectorAll('.custom-export-img'));
+    for (const imgEl of dynamicImgs) {
+      if (!imgEl.src) continue;
+      const imgRect = imgEl.getBoundingClientRect();
+      const destX = (imgRect.left - cardRect.left) * scaleX;
+      const destY = (imgRect.top - cardRect.top) * scaleY;
+      const destW = imgRect.width * scaleX;
+      const destH = imgRect.height * scaleY;
+
+      const loaded = new Image();
+      await new Promise((res) => {
+        loaded.onload = res;
+        loaded.onerror = res;
+        loaded.src = imgEl.src;
+      });
+
+      if (loaded.naturalWidth > 0) {
+        renderFittedImage(ctx, loaded, destX, destY, destW, destH, 12 * scaleX);
+      }
+    }
+
+    return canvas;
+  };
+
+  // استخراج الصورة مع ضمان وجود الشعار والصور بدقة كاملة
   const handleExtractImage = async () => {
     if (!templateCardRef.current) return;
     setIsExporting(true);
     try {
-      const dataUrl = await toPng(templateCardRef.current, {
-        pixelRatio: 2,
-        cacheBust: false,
-      });
+      const finalCanvas = await buildCardCanvas(templateCardRef.current);
+      const dataUrl = finalCanvas.toDataURL('image/png');
 
       const link = document.createElement('a');
       link.download = `سؤال_عقدة_${subject || 'تحصيلي'}_${Date.now()}.png`;
@@ -407,7 +492,7 @@ export default function App() {
     }
   };
 
-  // استخراج الفيديو مدمجاً بدون تعليق ومحمي ضد توقف الـ 1%
+  // استخراج الفيديو مدمجاً مع الشعار بدون أي نقص
   const handleExtractFullVideo = async () => {
     const video = videoPlayerRef.current;
     const cardEl = templateCardRef.current;
@@ -417,30 +502,22 @@ export default function App() {
     }
 
     setIsExporting(true);
-    setExportProgress(5);
+    setExportProgress(8);
 
     try {
-      // 1. التقاط خلفية القالب
-      setExportProgress(12);
-      const cardPngUrl = await toPng(cardEl, {
-        pixelRatio: 2,
-        cacheBust: false,
-      });
-
       setExportProgress(20);
+      const cardCanvas = await buildCardCanvas(cardEl);
+
       const cardImg = new Image();
-      await new Promise((res, rej) => {
+      await new Promise((res) => {
         cardImg.onload = res;
-        cardImg.onerror = rej;
-        // صمام أمان حتى لا يعلق المتصفح أبداً
-        setTimeout(res, 2000);
-        cardImg.src = cardPngUrl;
+        cardImg.src = cardCanvas.toDataURL('image/png');
       });
 
-      setExportProgress(25);
+      setExportProgress(28);
       const canvas = document.createElement('canvas');
-      canvas.width = cardImg.naturalWidth || 1080;
-      canvas.height = cardImg.naturalHeight || 1350;
+      canvas.width = cardImg.naturalWidth;
+      canvas.height = cardImg.naturalHeight;
       const ctx = canvas.getContext('2d');
 
       ctx.drawImage(cardImg, 0, 0, canvas.width, canvas.height);
@@ -461,7 +538,6 @@ export default function App() {
 
       const stream = canvas.captureStream(30);
 
-      // إعادة تدوير الـ AudioContext والـ SourceNode لمنع خطأ الآيفون
       let audioCtx = audioCtxRef.current;
       if (!audioCtx) {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -488,7 +564,7 @@ export default function App() {
             stream.addTrack(audioTrack);
           }
         } catch (audioErr) {
-          console.warn('تنبيه مسار الصوت:', audioErr);
+          console.warn('مسار الصوت:', audioErr);
         }
       }
 
@@ -536,7 +612,6 @@ export default function App() {
         await video.play();
       }
 
-      // بدء التسجيل فورياً دون تأخير
       mediaRecorder.start(250);
 
       const totalDuration = video.duration || 10;
@@ -560,8 +635,7 @@ export default function App() {
         ctx.drawImage(video, destX, destY, destW, destH);
         ctx.restore();
 
-        // تحديث النسبة المئوية فورياً بدون توقف
-        const percent = Math.min(99, Math.max(25, Math.round((video.currentTime / totalDuration) * 100)));
+        const percent = Math.min(99, Math.max(30, Math.round((video.currentTime / totalDuration) * 100)));
         setExportProgress(percent);
 
         animationFrameId = requestAnimationFrame(renderLoop);
@@ -623,7 +697,7 @@ export default function App() {
             <h3 className="text-base font-black">
               {isVideoMnemonic ? 'جاري استخراج القالب والمقطع معاً...' : 'جاري استخراج القالب...'}
             </h3>
-            <p className="text-xs text-slate-300">يتم إعداد القالب بدون أي تكرار وبأعلى دقة</p>
+            <p className="text-xs text-slate-300">يتم تثبيت الشعار والصور بدقة فائقة</p>
             {isVideoMnemonic && exportProgress > 0 && (
               <div className="w-full bg-slate-800 rounded-full h-3 overflow-hidden border border-slate-700">
                 <div
@@ -644,7 +718,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => logoRef.current?.click()}
-              title="اضغط لتغيير الشعار"
+              title="اضغط لتغيير الشعار في أي وقت"
               className="rounded-2xl p-1 bg-[#FFFDF9] border border-slate-200 hover:border-[#D65261] transition-all cursor-pointer flex items-center justify-center shrink-0"
             >
               {customLogo ? (
@@ -653,21 +727,37 @@ export default function App() {
                 <UqdahLogo size={42} />
               )}
             </button>
+
             <input
               ref={logoRef}
               type="file"
               accept="image/*"
               className="hidden"
-              onChange={(e) => handleFileUpload(e.target.files?.[0], setCustomLogo)}
+              onClick={(e) => { e.target.value = ''; }}
+              onChange={(e) => {
+                handleFileUpload(e.target.files?.[0], setCustomLogo);
+                e.target.value = '';
+              }}
             />
+
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <h1 className="text-sm sm:text-base font-black text-slate-900 truncate">أكاديمية عقدة</h1>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#D65261]/10 text-[#A83846]">
-                  صانع القوالب الذكي
-                </span>
+                {customLogo ? (
+                  <button
+                    type="button"
+                    onClick={() => setCustomLogo(null)}
+                    className="text-[10px] font-bold text-rose-600 hover:underline cursor-pointer"
+                  >
+                    استعادة الشعار الافتراضي
+                  </button>
+                ) : (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#D65261]/10 text-[#A83846]">
+                    صانع القوالب الذكي
+                  </span>
+                )}
               </div>
-              <p className="text-[10px] sm:text-xs text-slate-500 truncate">معالجة فورية وتصدير سريع للآيفون</p>
+              <p className="text-[10px] sm:text-xs text-slate-500 truncate">انقر على الشعار لتغييره متى شئت</p>
             </div>
           </div>
 
@@ -746,14 +836,18 @@ export default function App() {
           </div>
 
           <div className="p-4 sm:p-5 space-y-4 sm:space-y-5">
-            {/* 1. اسم المادة */}
+            {/* 1. اسم المادة والشعار */}
             <div className="space-y-2">
-              <label className="flex items-center justify-between text-xs font-black text-slate-800">
-                <span>1. اسم المادة</span>
-                <span className="text-[11px] font-bold text-[#A83846] bg-[#D65261]/10 px-2 py-0.5 rounded-md">
-                  {subject}
-                </span>
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-black text-slate-800">1. اسم المادة والشعار</label>
+                <button
+                  type="button"
+                  onClick={() => logoRef.current?.click()}
+                  className="text-[11px] font-bold text-[#D65261] hover:underline cursor-pointer"
+                >
+                  {customLogo ? 'تغيير الشعار المرفوع ↺' : '+ رفع شعار خاص'}
+                </button>
+              </div>
 
               <div className="flex flex-wrap gap-1.5">
                 {subjects.map((sub) => (
@@ -818,7 +912,11 @@ export default function App() {
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  onChange={(e) => handleFileUpload(e.target.files?.[0], setQuestionImage)}
+                  onClick={(e) => { e.target.value = ''; }}
+                  onChange={(e) => {
+                    handleFileUpload(e.target.files?.[0], setQuestionImage);
+                    e.target.value = '';
+                  }}
                 />
               </div>
 
@@ -937,17 +1035,19 @@ export default function App() {
                               type="file"
                               accept="image/*"
                               className="hidden"
-                              onChange={(e) =>
+                              onClick={(e) => { e.target.value = ''; }}
+                              onChange={(e) => {
                                 handleFileUpload(e.target.files?.[0], (url) =>
                                   updateOption(opt.id, { image: url })
-                                )
-                              }
+                                );
+                                e.target.value = '';
+                              }}
                             />
                           </div>
 
                           {opt.image && (
                             <div className="mt-1.5 bg-white rounded-lg p-1 border border-slate-200 flex items-center justify-between">
-                              <img src={opt.image} alt="" className="h-8 object-contain rounded" />
+                              <img src={opt.image} alt="" className="custom-export-img h-8 object-contain rounded" />
                               <button
                                 type="button"
                                 onClick={() => updateOption(opt.id, { image: null })}
@@ -967,7 +1067,7 @@ export default function App() {
 
             <hr className="border-slate-100" />
 
-            {/* 4. الربط الذهني مع شارة قابلة للتعديل أو الحذف */}
+            {/* 4. الربط الذهني */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div>
@@ -1103,7 +1203,11 @@ export default function App() {
                       type="file"
                       accept="image/*"
                       className="hidden"
-                      onChange={(e) => handleFileUpload(e.target.files?.[0], setMnemonicMediaUrl)}
+                      onClick={(e) => { e.target.value = ''; }}
+                      onChange={(e) => {
+                        handleFileUpload(e.target.files?.[0], setMnemonicMediaUrl);
+                        e.target.value = '';
+                      }}
                     />
 
                     <input
@@ -1111,12 +1215,14 @@ export default function App() {
                       type="file"
                       accept="video/*"
                       className="hidden"
+                      onClick={(e) => { e.target.value = ''; }}
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
                           const url = URL.createObjectURL(file);
                           setMnemonicMediaUrl(url);
                         }
+                        e.target.value = '';
                       }}
                     />
 
@@ -1238,7 +1344,7 @@ export default function App() {
                         <polygon points="90,122 105,142 98,126" fill="#FF7A1A" />
                       </svg>
 
-                      {/* زاوية أعلى اليمين مع علامة الاستفهام 3D */}
+                      {/* زاوية أعلى اليمين الأصلية مع رقعة الورق وعلامة الاستفهام 3D والسهم والأشعة */}
                       <svg viewBox="0 0 160 170" style={{ position: 'absolute', top: 0, right: 0, width: '160px', height: '170px', pointerEvents: 'none', zIndex: 1 }}>
                         <polygon points="32,70 10,75 18,84" fill="#FF7A1A" />
                         <polygon points="40,88 15,100 28,108" fill="#FF7A1A" />
@@ -1257,7 +1363,7 @@ export default function App() {
                         <polyline points="138,140 146,141 148,150" fill="none" stroke="#FF7A1A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
 
-                      {/* زاوية أسفل اليسار */}
+                      {/* زاوية أسفل اليسار: شخبطة لولبية + مصفوفة نقاط بنفسجية + ورق ممزق */}
                       <svg viewBox="0 0 170 160" style={{ position: 'absolute', bottom: 0, left: 0, width: '170px', height: '160px', pointerEvents: 'none', zIndex: 1 }}>
                         <g fill="#6C44D6" opacity="0.85">
                           <circle cx="20" cy="25" r="3.2" />
@@ -1494,6 +1600,7 @@ export default function App() {
                       <img
                         src={customLogo}
                         alt="شعار"
+                        className="custom-export-img"
                         style={{
                           maxHeight: '80px',
                           maxWidth: '120px',
@@ -1560,6 +1667,7 @@ export default function App() {
                           <img
                             src={questionImage}
                             alt="صورة السؤال"
+                            className="custom-export-img"
                             style={{
                               maxHeight: '220px',
                               maxWidth: '100%',
@@ -1636,6 +1744,7 @@ export default function App() {
                                   <img
                                     src={opt.image}
                                     alt=""
+                                    className="custom-export-img"
                                     style={{
                                       maxHeight: '70px',
                                       maxWidth: '100%',
@@ -1742,6 +1851,7 @@ export default function App() {
                           <img
                             src={mnemonicMediaUrl}
                             alt="ربط"
+                            className="custom-export-img"
                             style={{
                               maxWidth: '100%',
                               maxHeight: '440px',
